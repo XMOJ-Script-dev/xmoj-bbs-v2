@@ -4,6 +4,6 @@ export default defineNitroConfig({
   srcDir: "server",
   preset: "cloudflare-module",
   experimental: {
-    openAPI: true
+    database: true
   }
 });

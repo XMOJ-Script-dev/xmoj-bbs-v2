@@ -11,6 +11,7 @@
     "nitropack": "latest"
   },
   "dependencies": {
+    "db0": "^0.1.4",
     "h3": "^1.12.0"
   }
 }
