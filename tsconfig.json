@@ -1,8 +1,13 @@
 // https://nitro.unjs.io/guide/typescript
 {
   "extends": "./.nitro/types/tsconfig.json",
+
   "compilerOptions": {
     "typeRoots": ["./node_modules/@types", "./types"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext"],
+    "types": ["@cloudflare/workers-types"]
   }
 }
