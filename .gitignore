@@ -5,6 +5,7 @@ dist
 .cache
 .output
 .env
+.npmrc
 .wrangler
 */.wrangler
 */.output
