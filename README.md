@@ -1,3 +1,4 @@
-# Nitro starter
+# xmoj-bbs-v2
 
-Look at the [nitro quick start](https://nitro.unjs.io/guide#quick-start) to learn more how to get started.
+Currently in development. The switch to this will be gradual.
+
