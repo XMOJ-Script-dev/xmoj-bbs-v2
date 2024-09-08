@@ -5,3 +5,8 @@ dist
 .cache
 .output
 .env
+.wrangler
+*/.wrangler
+*/.output
+*/node_modules
+*/.nitro
