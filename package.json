@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "nitropack": "latest"
+  },
+  "dependencies": {
+    "h3": "^1.12.0"
   }
 }

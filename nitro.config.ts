@@ -1,5 +1,9 @@
 //https://nitro.unjs.io/config
 export default defineNitroConfig({
+  errorHandler: "~/error",
   srcDir: "server",
-  preset: "cloudflare-module"
+  preset: "cloudflare-module",
+  experimental: {
+    openAPI: true
+  }
 });
