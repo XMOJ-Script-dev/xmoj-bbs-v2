@@ -1,6 +1,6 @@
 import {Result} from "~/utils/resultUtils";
 
-const CheckParams = (Data: object, Checklist: object): Result => {
+export const CheckParams = (Data: object, Checklist: object): Result => {
   for (const i in Data) {
     if (Checklist[i] === undefined) {
       return new Result(false, "参数" + i + "未知");
