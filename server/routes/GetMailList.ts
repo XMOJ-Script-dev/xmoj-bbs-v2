@@ -9,11 +9,11 @@ export default eventHandler(async (event) => {
   let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", ["message_from"], { message_to: auth.username }, {}, true));
   for (const i in Mails) OtherUsernameList.push(Mails[i]['message_from']);
   Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", ["message_to"], { message_from: auth.username }, {}, true));
-  for (const i in Mails) OtherUsernameList.push(Mails[i]['message_to']);
+  for (const mail of Mails) OtherUsernameList.push(mail['message_to']);
   OtherUsernameList = Array.from(new Set(OtherUsernameList));
-  for (const i in OtherUsernameList) {
-    const LastMessageFrom = ThrowErrorIfFailed(await auth.database.Select("short_message", ["content", "send_time", "message_from", "message_to"], { message_from: OtherUsernameList[i], message_to: auth.username }, { Order: "send_time", OrderIncreasing: false, Limit: 1 }));
-    const LastMessageTo = ThrowErrorIfFailed(await auth.database.Select("short_message", ["content", "send_time", "message_from", "message_to"], { message_from: auth.username, message_to: OtherUsernameList[i] }, { Order: "send_time", OrderIncreasing: false, Limit: 1 }));
+  for (const other of OtherUsernameList) {
+    const LastMessageFrom = ThrowErrorIfFailed(await auth.database.Select("short_message", ["content", "send_time", "message_from", "message_to"], { message_from: other, message_to: auth.username }, { Order: "send_time", OrderIncreasing: false, Limit: 1 }));
+    const LastMessageTo = ThrowErrorIfFailed(await auth.database.Select("short_message", ["content", "send_time", "message_from", "message_to"], { message_from: auth.username, message_to: other }, { Order: "send_time", OrderIncreasing: false, Limit: 1 }));
     let LastMessage: any;
     if (LastMessageFrom.toString() === "") LastMessage = LastMessageTo; else if (LastMessageTo.toString() === "") LastMessage = LastMessageFrom; else LastMessage = LastMessageFrom[0]['send_time'] > LastMessageTo[0]['send_time'] ? LastMessageFrom : LastMessageTo;
     if (LastMessage[0]['content'].startsWith("Begin xssmseetee v2 encrypted message")) {

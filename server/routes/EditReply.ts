@@ -43,8 +43,8 @@ export default eventHandler(async (event) => {
     edit_person: auth.username
   }, { reply_id: Data.ReplyID }));
   
-  for (const i in MentionPeople) {
-    await AddBBSMention(MentionPeople[i], auth.username, Reply[0]['post_id'], Data.ReplyID, auth.database);
+  for (const person of MentionPeople) {
+    await AddBBSMention(person, auth.username, Reply[0]['post_id'], Data.ReplyID, auth.database);
   }
   return new Result(true, "编辑回复成功");
 });

@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
       return;
     }
     
-    const { Authentication, Data, Version, DebugMode } = body;
+    const { Authentication, Data } = body;
     
     // Validate Authentication object
     if (!Authentication.SessionID || !Authentication.Username) {

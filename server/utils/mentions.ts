@@ -15,7 +15,7 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+import { ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
 
 export async function AddBBSMention(

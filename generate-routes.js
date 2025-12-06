@@ -89,7 +89,7 @@ const routes = [
 ];
 
 function generateRouteFile(route) {
-  const paramsStr = JSON.stringify(route.params, null, 4).replace(/"/g, '"');
+  const paramsStr = JSON.stringify(route.params, null, 4);
   
   const template = `${COPYRIGHT_HEADER}
 

@@ -81,8 +81,8 @@ export default eventHandler(async (event) => {
     reply_time: new Date().getTime()
   }))["InsertID"];
   
-  for (const i in MentionPeople) {
-    await AddBBSMention(MentionPeople[i], auth.username, Data.PostID, ReplyID, auth.database);
+  for (const person of MentionPeople) {
+    await AddBBSMention(person, auth.username, Data.PostID, ReplyID, auth.database);
   }
   
   if (Post[0]["user_id"] !== auth.username) {

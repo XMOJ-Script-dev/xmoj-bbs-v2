@@ -21,7 +21,7 @@ import { CheckParams } from "~/utils/checkPrams";
 export default eventHandler(async (event) => {
   const body = await readBody(event);
   const { Data } = body;
-  const { auth, cloudflare } = event.context;
+  const { auth } = event.context;
   
   ThrowErrorIfFailed(CheckParams(Data, {
     "PostID": "number",

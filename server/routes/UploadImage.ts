@@ -11,7 +11,7 @@ export default defineEventHandler(async (event: H3Event) => {
     const check = CheckParams(body, required)
     if (!check.success) return new Result(false, null, check.message)
 
-    const { Authentication, Data } = body
+    const { Data } = body
     const pat = process.env.GithubImagePAT
     const repoOwner = process.env.GithubImageOwner || 'XMOJ-Script-dev'
     const repoName = process.env.GithubImageRepo || 'xmoj-bbs-images'

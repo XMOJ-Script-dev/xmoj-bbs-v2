@@ -56,7 +56,7 @@ export class Database {
     }
     QueryString = QueryString.substring(0, QueryString.length - 2);
     QueryString += ") VALUES (";
-    for (let i in Data) {
+    for (const _ of Data) {
       QueryString += "?, ";
     }
     QueryString = QueryString.substring(0, QueryString.length - 2);
@@ -78,8 +78,8 @@ export class Database {
     if (Data.length == 0) {
       QueryString += "*";
     } else {
-      for (let i in Data) {
-        QueryString += "`" + Data[i] + "`, ";
+      for (const col of Data) {
+        QueryString += "`" + col + "`, ";
       }
       QueryString = QueryString.substring(0, QueryString.length - 2);
     }
