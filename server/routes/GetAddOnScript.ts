@@ -19,12 +19,12 @@ import { Result } from "~/utils/resultUtils";
 
 export default eventHandler(async (event) => {
   const { cloudflare } = event.context;
-  const notice = await cloudflare.env.kv.get("noticeboard");
+  const script = await cloudflare.env.kv.get("addonscript");
   let resp: Result;
-  if (notice === null) {
-    resp = new Result(false, "未找到公告");
+  if (script === null) {
+    resp = new Result(false, "未找到插件脚本");
   } else {
-    resp = new Result(true, "获得公告成功", { "Notice": notice });
+    resp = new Result(true, "获得插件脚本成功", { "Script": script });
   }
   return resp;
 });

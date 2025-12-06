@@ -8,11 +8,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240903.0",
+    "@types/node": "^20.10.0",
     "nitropack": "latest"
   },
   "dependencies": {
-    "db0": "^0.1.4",
-    "drizzle-orm": "^0.29.5",
-    "h3": "^1.12.0"
+    "cheerio": "^1.0.0-rc.12",
+    "crypto-js": "^4.2.0",
+    "h3": "^1.12.0",
+    "sqlstring": "^2.3.3"
   }
 }

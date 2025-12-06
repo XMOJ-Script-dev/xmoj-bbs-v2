@@ -15,16 +15,31 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Result } from "~/utils/resultUtils";
+import { Database } from "~/utils/database";
 
-export default eventHandler(async (event) => {
-  const { cloudflare } = event.context;
-  const notice = await cloudflare.env.kv.get("noticeboard");
-  let resp: Result;
-  if (notice === null) {
-    resp = new Result(false, "未找到公告");
-  } else {
-    resp = new Result(true, "获得公告成功", { "Notice": notice });
-  }
-  return resp;
+export default defineNitroPlugin((nitroApp) => {
+  nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
+    const { env, context } = event;
+    let XMOJDatabase = new Database(env.DB);
+    
+    context.waitUntil(new Promise<void>(async (Resolve) => {
+      await XMOJDatabase.Delete("short_message", {
+        "send_time": {
+          "Operator": "<=",
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
+        },
+        "is_read": {
+          "Operator": "=",
+          "Value": 1
+        }
+      });
+      await XMOJDatabase.Delete("phpsessid", {
+        "create_time": {
+          "Operator": "<=",
+          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
+        }
+      });
+      Resolve();
+    }));
+  });
 });

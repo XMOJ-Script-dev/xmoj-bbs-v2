@@ -15,16 +15,17 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Result } from "~/utils/resultUtils";
-
-export default eventHandler(async (event) => {
-  const { cloudflare } = event.context;
-  const notice = await cloudflare.env.kv.get("noticeboard");
-  let resp: Result;
-  if (notice === null) {
-    resp = new Result(false, "未找到公告");
-  } else {
-    resp = new Result(true, "获得公告成功", { "Notice": notice });
+export class Output {
+  public static Debug(Message: any): void {
+    // console.debug("\x1b[36m%s\x1b[0m", Message);
   }
-  return resp;
-});
+  public static Log(Message: any): void {
+    console.log("\x1b[32m%s\x1b[0m", Message);
+  }
+  public static Warn(Message: any): void {
+    console.warn("\x1b[33m%s\x1b[0m", Message);
+  }
+  public static Error(Message: any): void {
+    console.error("\x1b[31m%s\x1b[0m", Message);
+  }
+}
