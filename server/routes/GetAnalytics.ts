@@ -9,7 +9,7 @@ export default defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const required = ['Authentication', 'Data']
     const check = CheckParams(body, required)
-    if (!check.success) return new Result(false, null, check.message)
+    if (!check.Success) return new Result(false, null, check.message)
 
     const { Data } = body
     const sql = (Data?.sql as string) || ''
