@@ -10,17 +10,17 @@ export default defineEventHandler(async (event: H3Event) => {
     const repoOwner = process.env.GithubImageOwner || 'XMOJ-Script-dev'
     const repoName = process.env.GithubImageRepo || 'xmoj-bbs-images'
     const pat = process.env.GithubImagePAT
-    if (!pat) return new Result(false, null, 'Missing GithubImagePAT')
+    if (!pat) return new Result(false, 'Missing GithubImagePAT')
 
     const targetPath = path || (id ? `images/${id}` : null)
-    if (!targetPath) return new Result(false, null, 'Missing id or path')
+    if (!targetPath) return new Result(false, 'Missing id or path')
 
     const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${encodeURIComponent(targetPath)}`
     const res = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } })
     if (!res.ok) {
       const t = await res.text()
-      Output.error('GetImage', t)
-      return new Result(false, null, `GitHub fetch failed: ${res.status}`)
+      Output.Error('GetImage: ' + t)
+      return new Result(false, `GitHub fetch failed: ${res.status}`)
     }
     const contentType = res.headers.get('content-type') || 'application/octet-stream'
     const arrayBuf = await res.arrayBuffer()
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event: H3Event) => {
       headers: { 'Content-Type': contentType }
     })
   } catch (err: any) {
-    Output.error('GetImage', err?.message || String(err))
-    return new Result(false, null, 'Unexpected error')
+    Output.Error('GetImage: ' + (err?.message || String(err)))
+    return new Result(false, 'Unexpected error')
   }
 })

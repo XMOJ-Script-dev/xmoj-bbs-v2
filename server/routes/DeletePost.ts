@@ -21,8 +21,9 @@ export default eventHandler(async (event) => {
   }
   const Replies = ThrowErrorIfFailed(await auth.database.Select("bbs_reply", ["reply_id"], { post_id: Data.PostID }));
   for (const i in Replies) {
-    await auth.database.Delete("bbs_reply", { reply_id: Replies[i]['reply_id'] });
+     await auth.database.Delete("bbs_reply", { reply_id: Replies[i]['reply_id'] });
   }
-  await auth.database.Delete("bbs_post", { post_id: Data.PostID });
+    await auth.database.Delete("bbs_post", { post_id: Data.PostID });
+    await auth.database.Delete("bbs_lock", { post_id: Data.PostID });
   return new Result(true, "删除讨论成功");
 });

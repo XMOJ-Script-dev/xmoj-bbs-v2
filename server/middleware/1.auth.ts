@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
         XMOJDatabase
       );
       
-      if (tokenResult.Data["Success"]) {
+      if (tokenResult.Success) {
         break;
       }
       TokenFailedCount++;

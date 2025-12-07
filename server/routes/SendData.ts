@@ -7,6 +7,6 @@ export default defineEventHandler(async (event: H3Event) => {
   const body = await readBody(event)
   const required = ['Authentication']
   const check = CheckParams(body, required)
-  if (!check.success) return new Result(false, null, check.message)
-  return new Result(true, { ok: true }, 'OK')
+  if (!check.Success) return new Result(false, check.Message)
+  return new Result(true, 'OK', { ok: true })
 })

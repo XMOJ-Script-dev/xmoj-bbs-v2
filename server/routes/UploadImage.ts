@@ -9,16 +9,16 @@ export default defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const required = ['Authentication', 'Data']
     const check = CheckParams(body, required)
-    if (!check.success) return new Result(false, null, check.message)
+    if (!check.Success) return new Result(false, check.Message)
 
     const { Data } = body
     const pat = process.env.GithubImagePAT
     const repoOwner = process.env.GithubImageOwner || 'XMOJ-Script-dev'
     const repoName = process.env.GithubImageRepo || 'xmoj-bbs-images'
-    if (!pat) return new Result(false, null, 'Missing GithubImagePAT')
+    if (!pat) return new Result(false, 'Missing GithubImagePAT')
 
     const { filename, base64 } = Data || {}
-    if (!base64) return new Result(false, null, 'Missing base64 image data')
+    if (!base64) return new Result(false, 'Missing base64 image data')
 
     const now = Date.now()
     const id = `${now}-${Math.random().toString(36).slice(2, 8)}`
@@ -41,13 +41,13 @@ export default defineEventHandler(async (event: H3Event) => {
 
     if (!res.ok) {
       const t = await res.text()
-      Output.error('UploadImage', t)
-      return new Result(false, null, `GitHub upload failed: ${res.status}`)
+      Output.Error('UploadImage: ' + t)
+      return new Result(false, `GitHub upload failed: ${res.status}`)
     }
 
-    return new Result(true, { id, path: targetPath }, 'OK')
+    return new Result(true, 'OK', { id, path: targetPath })
   } catch (err: any) {
-    Output.error('UploadImage', err?.message || String(err))
-    return new Result(false, null, 'Unexpected error')
+    Output.Error('UploadImage: ' + (err?.message || String(err)))
+    return new Result(false, 'Unexpected error')
   }
 })

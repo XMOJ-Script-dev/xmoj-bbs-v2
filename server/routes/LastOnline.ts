@@ -10,22 +10,22 @@ export default defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const required = ['Authentication', 'Data']
     const check = CheckParams(body, required)
-    if (!check.success) return new Result(false, null, check.message)
+    if (!check.Success) return new Result(false, check.Message)
 
     const { Data } = body
     const username = Data?.username as string
-    if (!username) return new Result(false, null, 'Missing username')
+    if (!username) return new Result(false, 'Missing username')
 
-    const db = await Database.get()
+    const db = new Database((event as any).context?.cloudflare?.env?.DB)
     const rs = await db.prepare(
       'SELECT timestamp FROM analytics_log WHERE username = ? ORDER BY timestamp DESC LIMIT 1'
     ).bind(username).first()
 
-    if (!rs || !rs.timestamp) return new Result(true, { lastOnline: 0 }, 'Not found')
+    if (!rs || !rs.timestamp) return new Result(true, 'Not found', { lastOnline: 0 })
     const tsUnix = Math.floor(Number(rs.timestamp) / 1000)
-    return new Result(true, { lastOnline: tsUnix }, 'OK')
+    return new Result(true, 'OK', { lastOnline: tsUnix })
   } catch (err: any) {
-    Output.error('LastOnline', err?.message || String(err))
-    return new Result(false, null, 'Unexpected error')
+    Output.Error('LastOnline: ' + (err?.message || String(err)))
+    return new Result(false, 'Unexpected error')
   }
 })

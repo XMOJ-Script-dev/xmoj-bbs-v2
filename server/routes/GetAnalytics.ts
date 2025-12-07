@@ -9,16 +9,16 @@ export default defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const required = ['Authentication', 'Data']
     const check = CheckParams(body, required)
-    if (!check.Success) return new Result(false, null, check.message)
+    if (!check.success) return new Result(false, null, check.message)
 
     const { Data } = body
     const sql = (Data?.sql as string) || ''
-    if (!sql) return new Result(false, null, 'Missing SQL')
+    if (!sql) return new Result(false, 'Missing SQL')
 
     const accountId = process.env.ACCOUNT_ID
     const apiToken = process.env.API_TOKEN
     const dataset = process.env.AnalyticsDataset || 'xmoj_bbs'
-    if (!accountId || !apiToken) return new Result(false, null, 'Missing ACCOUNT_ID or API_TOKEN')
+    if (!accountId || !apiToken) return new Result(false, 'Missing ACCOUNT_ID or API_TOKEN')
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;
     const res = await fetch(url, {
@@ -35,14 +35,14 @@ export default defineEventHandler(async (event: H3Event) => {
 
     if (!res.ok) {
       const t = await res.text()
-      Output.error('GetAnalytics', t)
-      return new Result(false, null, `Analytics query failed: ${res.status}`)
+      Output.Error('GetAnalytics: ' + t)
+      return new Result(false, `Analytics query failed: ${res.status}`)
     }
 
     const data = await res.json()
-    return new Result(true, data, 'OK')
+    return new Result(true, 'OK', data)
   } catch (err: any) {
-    Output.error('GetAnalytics', err?.message || String(err))
-    return new Result(false, null, 'Unexpected error')
+    Output.Error('GetAnalytics: ' + (err?.message || String(err)))
+    return new Result(false, 'Unexpected error')
   }
 })

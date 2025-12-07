@@ -31,7 +31,7 @@ export default eventHandler(async (event) => {
     return new Result(false, "内容不能仅包含空格");
   }
   const check = await cloudflare.env.AI.run("@cf/huggingface/distilbert-sst-2-int8", { text: Data.Content });
-  if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"].toFixed() > 0.90) {
+    if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"] > 0.90) {
     return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
   }
   ThrowErrorIfFailed(await auth.database.Update("badge", { background_color: Data.BackgroundColor, color: Data.Color, content: Data.Content }, { user_id: Data.UserID }));

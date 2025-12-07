@@ -198,7 +198,7 @@ export class Database {
           QueryString += "`" + i + "` " + Condition[i]["Operator"] + " ? AND ";
         }
       }
-      QueryString = QueryString.substring(0, QueryString.length - 4);
+      QueryString = QueryString.substring(0, QueryString.length - 5);
     }
     QueryString += ";";
     let BindData = Array();
