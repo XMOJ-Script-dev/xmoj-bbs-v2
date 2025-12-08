@@ -142,6 +142,8 @@ export class Database {
         return new Result(false, "排序关键字和排序顺序必须同时定义或非定义");
       }
       if (Other["Order"] !== undefined && Other["OrderIncreasing"] !== undefined) {
+        // Validate order column name against whitelist to prevent injection
+        validateColumnName(Table, Other["Order"] as string);
         QueryString += " ORDER BY `" + Other["Order"] + "` " + (Other["OrderIncreasing"] ? "ASC" : "DESC");
       }
       if (Other["Limit"] !== undefined) {

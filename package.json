@@ -22,6 +22,7 @@
     "cheerio": "^1.1.2",
     "crypto-js": "^4.2.0",
     "h3": "^1.12.0",
-    "sqlstring": "^2.3.3"
+    "sqlstring": "^2.3.3",
+    "sanitize-html": "^2.13.0"
   }
 }

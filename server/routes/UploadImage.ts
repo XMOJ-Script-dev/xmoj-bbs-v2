@@ -7,6 +7,9 @@ import { Output } from '../utils/output'
 export default defineEventHandler(async (event: H3Event) => {
   try {
     const body = await readBody(event)
+       if (!event.context?.auth) {
+         return new Result(false, "未认证");
+       }
     const required = ['Authentication', 'Data']
     const check = CheckParams(body, required)
     if (!check.Success) return new Result(false, check.Message)

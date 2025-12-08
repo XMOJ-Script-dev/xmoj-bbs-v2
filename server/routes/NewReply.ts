@@ -21,6 +21,7 @@ import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdmin, IsSilenced } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { IfUserExist } from "~/utils/xmoj";
+import { sanitizeRichText } from "~/utils/htmlSanitizer";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
@@ -77,7 +78,7 @@ export default eventHandler(async (event) => {
   const ReplyID = ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
     user_id: auth.username,
     post_id: Data.PostID,
-    content: Data.Content,
+    content: sanitizeRichText(Data.Content),
     reply_time: new Date().getTime()
   }))["InsertID"];
   

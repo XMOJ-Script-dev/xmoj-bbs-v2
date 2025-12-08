@@ -26,7 +26,7 @@ export default defineNitroErrorHandler((error: H3Error, event: H3Event) => {
   }
   
   Output.Error(error);
-  const result = new Result(false, "服务器运行错误：" + String(error).split("\n")[0]);
+  const result = new Result(false, "服务器运行错误，请稍后重试");
   setResponseHeader(event, 'Content-Type', 'application/json');
   return send(event, result.toString());
 });

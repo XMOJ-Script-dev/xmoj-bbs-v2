@@ -35,7 +35,7 @@ export async function VerifyCaptcha(
   };
   
   if (CaptchaSecretKey === undefined) {
-    return new Result(true, "验证码检测跳过");
+    return new Result(false, "验证码系统配置错误");
   }
   
   if (CaptchaToken === "") {

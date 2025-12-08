@@ -19,6 +19,7 @@ import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkPrams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdmin, IsSilenced } from "~/utils/auth";
+import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
@@ -60,7 +61,7 @@ export default eventHandler(async (event) => {
   const PostID = ThrowErrorIfFailed(await auth.database.Insert("bbs_post", {
     user_id: auth.username,
     problem_id: Data.ProblemID,
-    title: Data.Title,
+    title: sanitizeTitle(Data.Title, 256),
     post_time: new Date().getTime(),
     board_id: Data.BoardID
   }))["InsertID"];
@@ -68,7 +69,7 @@ export default eventHandler(async (event) => {
   const ReplyID = ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
     user_id: auth.username,
     post_id: PostID,
-    content: Data.Content,
+    content: sanitizeRichText(Data.Content),
     reply_time: new Date().getTime()
   }))["InsertID"];
   
