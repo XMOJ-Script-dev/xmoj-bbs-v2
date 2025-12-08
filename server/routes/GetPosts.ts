@@ -16,7 +16,7 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
@@ -80,8 +80,8 @@ export default eventHandler(async (event) => {
     ORDER BY p.post_id DESC
     LIMIT ? OFFSET ?
   `;
-  const rows = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams, PAGE_SIZE, offset).all();
-  for (const row of rows.results) {
+  const selectRes = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams, PAGE_SIZE, offset).all();
+  for (const row of selectRes.results) {
     // Do not mutate data during read; cleanup should be handled by scheduled tasks
     const LockData = {
       Locked: !!row.lock_person,

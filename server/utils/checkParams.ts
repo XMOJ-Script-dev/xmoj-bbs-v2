@@ -17,17 +17,33 @@
 
 import { Result } from "~/utils/resultUtils";
 
-export const CheckParams = (Data: object, Checklist: object): Result => {
+type TypeSpec = string | { type: string; min?: number; max?: number; enum?: any[] };
+
+export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): Result => {
   for (const key of Object.keys(Data as any)) {
     if ((Checklist as any)[key] === undefined) {
       return new Result(false, "参数" + key + "未知");
     }
+    const spec: TypeSpec = (Checklist as any)[key];
+    const expectedType = typeof spec === 'string' ? spec : spec.type;
     const AvailableTypes = ["string", "number", "bigint", "boolean", "symbol", "undefined", "object", "function"];
-    if (AvailableTypes.indexOf((Checklist as any)[key]) === -1) {
-      return new Result(false, "参数类型" + (Checklist as any)[key] + "未知");
+    if (AvailableTypes.indexOf(expectedType) === -1) {
+      return new Result(false, "参数类型" + expectedType + "未知");
     }
-    if (typeof (Data as any)[key] !== (Checklist as any)[key]) {
-      return new Result(false, "参数" + key + "期望类型" + (Checklist as any)[key] + "实际类型" + typeof (Data as any)[key]);
+    const actual = (Data as any)[key];
+    if (typeof actual !== expectedType) {
+      return new Result(false, "参数" + key + "期望类型" + expectedType + "实际类型" + typeof actual);
+    }
+    if (typeof spec !== 'string') {
+      if (spec.min !== undefined && typeof actual === 'number' && actual < spec.min) {
+        return new Result(false, "参数" + key + "小于最小值" + spec.min);
+      }
+      if (spec.max !== undefined && typeof actual === 'number' && actual > spec.max) {
+        return new Result(false, "参数" + key + "大于最大值" + spec.max);
+      }
+      if (spec.enum && !spec.enum.includes(actual)) {
+        return new Result(false, "参数" + key + "不在允许范围内");
+      }
     }
   }
   for (const key of Object.keys(Checklist as any)) {

@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import CryptoJS from "crypto-js";
 
 export default eventHandler(async (event) => {

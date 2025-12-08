@@ -32,7 +32,25 @@ export default defineEventHandler(async (event: any) => {
     await kv.put(`rl:${key}`, JSON.stringify(state), { expirationTtl: 300 }); // 5 min TTL
     return;
   }
-  // Fallback: per-request transient (not persistent across workers)
-  const elapsedSec = 0; // Without KV, we cannot track reliably; allow request
-  void elapsedSec;
+  // Fallback: global in-memory token bucket without timers; cleaned on access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globalBuckets: Map<string, { tokens: number; last: number }> = (globalThis as any).__rlBuckets || ((globalThis as any).__rlBuckets = new Map());
+  const TTL_MS = 5 * 60 * 1000;
+  // Cleanup stale entries opportunistically
+  const firstKey = globalBuckets.keys().next().value;
+  if (firstKey) {
+    const now2 = now;
+    for (const [k, v] of globalBuckets.entries()) {
+      if (now2 - v.last > TTL_MS) globalBuckets.delete(k);
+    }
+  }
+  const st = globalBuckets.get(key) || { tokens: CAPACITY, last: now };
+  const elapsed = (now - st.last) / 1000;
+  st.tokens = Math.min(CAPACITY, st.tokens + elapsed * REFILL_PER_SEC);
+  st.last = now;
+  if (st.tokens < 1) {
+    return { Success: false, Message: '请求过于频繁，请稍后重试' };
+  }
+  st.tokens -= 1;
+  globalBuckets.set(key, st);
 });

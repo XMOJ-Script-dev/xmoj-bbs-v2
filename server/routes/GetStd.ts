@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { GetProblemScore } from "~/utils/xmoj";
 import { processCppString } from "~/utils/cppStringProcessor";
 

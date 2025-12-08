@@ -16,12 +16,12 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdmin, IsSilenced } from "~/utils/auth";
 import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
 
-export default eventHandler(async (event) => {
+export default eventHandler(async (event: any) => {
   const body = await readBody(event);
   const { Data } = body;
   const { auth, requestMeta, cloudflare } = event.context;
@@ -52,26 +52,27 @@ export default eventHandler(async (event) => {
   if (IsSilenced(auth.username)) {
     return new Result(false, "您已被禁言，无法发表讨论");
   }
-  if (Data.BoardID !== 0 && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_board", {
-    board_id: Data.BoardID
-  }))["TableSize"] === 0) {
+  if (Data.BoardID !== 0) {
+    const size = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_board", { board_id: Data.BoardID })) as { TableSize: number };
+    if (size.TableSize === 0) {
     return new Result(false, "该板块不存在");
+    }
   }
   
-  const PostID = ThrowErrorIfFailed(await auth.database.Insert("bbs_post", {
+  const PostID = (ThrowErrorIfFailed(await auth.database.Insert("bbs_post", {
     user_id: auth.username,
     problem_id: Data.ProblemID,
     title: sanitizeTitle(Data.Title, 256),
     post_time: new Date().getTime(),
     board_id: Data.BoardID
-  }))["InsertID"];
+  })) as { InsertID: number }).InsertID;
   
-  const ReplyID = ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
+  const ReplyID = (ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
     user_id: auth.username,
     post_id: PostID,
     content: sanitizeRichText(Data.Content),
     reply_time: new Date().getTime()
-  }))["InsertID"];
+  })) as { InsertID: number }).InsertID;
   
   return new Result(true, "创建讨论成功", {
     PostID: PostID,

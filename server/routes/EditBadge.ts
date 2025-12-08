@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { IsAdmin, DenyEdit } from "~/utils/auth";
 import { sanitizeTitle } from "~/utils/htmlSanitizer";
 

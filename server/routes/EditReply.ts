@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { IsAdmin, IsSilenced } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { IfUserExist } from "~/utils/xmoj";

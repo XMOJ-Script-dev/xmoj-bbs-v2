@@ -1,6 +1,6 @@
 import { H3Event, readBody } from 'h3'
 import { Result } from '../utils/resultUtils'
-import { CheckParams } from '../utils/checkPrams'
+import { CheckParams } from '../utils/checkParams'
 import { Database } from '../utils/database'
 import { Output } from '../utils/output'
 

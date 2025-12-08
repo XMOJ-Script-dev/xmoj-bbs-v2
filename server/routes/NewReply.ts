@@ -16,14 +16,14 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdmin, IsSilenced } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { IfUserExist } from "~/utils/xmoj";
 import { sanitizeRichText } from "~/utils/htmlSanitizer";
 
-export default eventHandler(async (event) => {
+export default eventHandler(async (event: any) => {
   const body = await readBody(event);
   const { Data } = body;
   const { auth, requestMeta, cloudflare } = event.context;
@@ -40,18 +40,17 @@ export default eventHandler(async (event) => {
     requestMeta.remoteIP
   ));
   
-  const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", ["title", "user_id", "board_id"], { post_id: Data.PostID }));
+  const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", ["title", "user_id", "board_id"], { post_id: Data.PostID })) as any[];
   if (Post.toString() == "") {
     return new Result(false, "该讨论不存在");
   }
   
-  if (Post[0]["board_id"] == 5) {
+  if ((Post as any[])[0]["board_id"] == 5) {
     return new Result(false, "此讨论不允许回复");
   }
   
-  if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", {
-    post_id: Data.PostID
-  }))["TableSize"] === 1 && !IsAdmin(auth.username)) {
+  const lockSize = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID })) as { TableSize: number };
+  if (lockSize.TableSize === 1 && !IsAdmin(auth.username)) {
     return new Result(false, "讨论已被锁定");
   }
   
@@ -66,7 +65,7 @@ export default eventHandler(async (event) => {
   
   let MentionPeople = new Array<string>();
   for (const Match of String(Data.Content).matchAll(/@([a-zA-Z0-9]+)/g)) {
-    if (ThrowErrorIfFailed(await IfUserExist(Match[1], auth.database))["Exist"]) {
+    if ((ThrowErrorIfFailed(await IfUserExist(Match[1], auth.database)) as { Exist: boolean }).Exist) {
       MentionPeople.push(Match[1]);
     }
   }
@@ -75,19 +74,19 @@ export default eventHandler(async (event) => {
     return new Result(false, "一次最多@3个人");
   }
   
-  const ReplyID = ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
+  const ReplyID = (ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
     user_id: auth.username,
     post_id: Data.PostID,
     content: sanitizeRichText(Data.Content),
     reply_time: new Date().getTime()
-  }))["InsertID"];
+  })) as { InsertID: number }).InsertID;
   
   for (const person of MentionPeople) {
     await AddBBSMention(person, auth.username, Data.PostID, ReplyID, auth.database);
   }
   
-  if (Post[0]["user_id"] !== auth.username) {
-    await AddBBSMention(Post[0]["user_id"], auth.username, Data.PostID, ReplyID, auth.database);
+  if ((Post as any[])[0]["user_id"] !== auth.username) {
+    await AddBBSMention((Post as any[])[0]["user_id"], auth.username, Data.PostID, ReplyID, auth.database);
   }
   
   return new Result(true, "创建回复成功", {

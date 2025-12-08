@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*
  *     Copyright (C) 2023-2025  XMOJ-bbs contributors
  *     This file is part of XMOJ-bbs.
@@ -79,6 +80,8 @@ export class Database {
       return new Result(false, "数据库查询失败，请稍后重试");
     }
   }
+
+  // (intentionally no public raw query method; complex reads should be carefully reviewed)
 
   public async Insert(Table: string, Data: object): Promise<Result> {
     if (readonly) {

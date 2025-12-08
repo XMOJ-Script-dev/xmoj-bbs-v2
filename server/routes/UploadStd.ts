@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { GetProblemScore } from "~/utils/xmoj";
 import { Output } from "~/utils/output";
 import { load, type CheerioAPI } from "cheerio";
