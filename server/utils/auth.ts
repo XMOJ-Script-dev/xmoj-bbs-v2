@@ -41,6 +41,11 @@ export async function CheckToken(
   // Optional KV for distributed cache
   KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: any) => Promise<void> }
 ): Promise<Result> {
+  const mask = (s: string): string => {
+    if (!s) return "";
+    if (s.length <= 8) return "***";
+    return s.slice(0, 4) + "..." + s.slice(-4);
+  };
   const HashedToken: string = CryptoJS.SHA3(SessionID).toString();
   const CurrentSessionData = ThrowErrorIfFailed(await XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
     token: HashedToken
@@ -54,7 +59,7 @@ export async function CheckToken(
       ThrowErrorIfFailed(await XMOJDatabase.Delete("phpsessid", {
         token: HashedToken
       }));
-      Output.Log("Session " + SessionID + " expired");
+      Output.Log("Session " + mask(SessionID) + " expired");
     }
   }
 
@@ -77,9 +82,15 @@ export async function CheckToken(
   }
   // Short-term in-memory cache to reduce external calls
   // @ts-ignore
-  const globalCache = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
+  const MAX_CACHE_ENTRIES = 1000;
+  const globalCache: Map<string, { u: string; t: number }> = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
   const cached = globalCache.get(SessionID);
-  if (cached && (new Date().getTime() - cached.t) < (5 * 60 * 1000)) {
+  const nowTs = new Date().getTime();
+  if (cached && (nowTs - cached.t) >= (5 * 60 * 1000)) {
+    // expired; remove to prevent growth
+    globalCache.delete(SessionID);
+  }
+  if (cached && (nowTs - cached.t) < (5 * 60 * 1000)) {
     if (cached.u === Username) {
       Output.Log("Using cached session for user");
       const tableSizeResult = ThrowErrorIfFailed(
@@ -113,23 +124,28 @@ export async function CheckToken(
     }).then((Response) => {
       let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
       SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
+      // LRU behavior: delete oldest if exceeding size limit
+      if (globalCache.size >= MAX_CACHE_ENTRIES) {
+        const oldestKey = globalCache.keys().next().value;
+        if (oldestKey) globalCache.delete(oldestKey);
+      }
       globalCache.set(SessionID, { u: SessionUsername, t: new Date().getTime() });
       return SessionUsername;
     }).catch((Error) => {
       Output.Error("Check token failed: " + Error + "\n" +
-        "PHPSessionID: \"" + SessionID + "\"\n" +
+        "PHPSessionID: \"" + mask(SessionID) + "\"\n" +
         "Username    : \"" + Username + "\"\n");
       return "";
     });
     
   if (SessionUsername == "") {
     Output.Debug("Check token failed: Session invalid\n" +
-      "PHPSessionID: \"" + SessionID + "\"\n");
+      "PHPSessionID: \"" + mask(SessionID) + "\"\n");
     return new Result(false, "令牌不合法");
   }
   if (SessionUsername != Username) {
     Output.Debug("Check token failed: Session and username not match \n" +
-      "PHPSessionID   : \"" + SessionID + "\"\n" +
+      "PHPSessionID   : \"" + mask(SessionID) + "\"\n" +
       "SessionUsername: \"" + SessionUsername + "\"\n" +
       "Username       : \"" + Username + "\"\n");
     return new Result(false, "令牌不匹配");
@@ -147,7 +163,7 @@ export async function CheckToken(
   } else {
     Output.Log("token already exists, skipping insert");
   }
-  Output.Log("Record session: " + SessionID + " for " + Username);
+  Output.Log("Record session: " + mask(SessionID) + " for " + Username);
   return new Result(true, "令牌匹配");
 }
 

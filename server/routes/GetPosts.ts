@@ -30,7 +30,8 @@ export default eventHandler(async (event) => {
     "Limit": "number"
   }));
   
-  const PAGE_SIZE = Data.Limit && Data.Limit > 0 ? Data.Limit : 15;
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const PAGE_SIZE = clamp(Number.isFinite(Data.Limit) ? Data.Limit : 15, 1, 100);
   let ResponseData = {
     Posts: new Array<Object>,
     PageCount: Data.BoardID !== -1 ? (Data.ProblemID !== 0 ? Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
@@ -77,14 +78,11 @@ export default eventHandler(async (event) => {
     LEFT JOIN bbs_board b ON b.board_id = p.board_id
     ${whereSql}
     ORDER BY p.post_id DESC
-    LIMIT ${PAGE_SIZE} OFFSET ${offset}
+    LIMIT ? OFFSET ?
   `;
-  const rows = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams).all();
+  const rows = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams, PAGE_SIZE, offset).all();
   for (const row of rows.results) {
-    if ((row.reply_count ?? 0) === 0) {
-      await auth.database.Delete("bbs_post", { post_id: row.post_id });
-      continue;
-    }
+    // Do not mutate data during read; cleanup should be handled by scheduled tasks
     const LockData = {
       Locked: !!row.lock_person,
       LockPerson: row.lock_person || "",

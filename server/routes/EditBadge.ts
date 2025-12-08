@@ -4,7 +4,7 @@ import { CheckParams } from "~/utils/checkPrams";
 import { IsAdmin, DenyEdit } from "~/utils/auth";
 import { sanitizeTitle } from "~/utils/htmlSanitizer";
 
-export default eventHandler(async (event) => {
+export default eventHandler(async (event: any) => {
   const body = await readBody(event);
   const { Data } = body;
   const { auth, cloudflare } = event.context;
@@ -12,7 +12,8 @@ export default eventHandler(async (event) => {
   if (!IsAdmin(auth.username) && Data.UserID !== auth.username) {
     return new Result(false, "没有权限编辑此标签");
   }
-  if (ThrowErrorIfFailed(await auth.database.GetTableSize("badge", { user_id: Data.UserID }))['TableSize'] === 0) {
+  const size = ThrowErrorIfFailed(await auth.database.GetTableSize("badge", { user_id: Data.UserID })) as { TableSize: number };
+  if (size.TableSize === 0) {
     return new Result(false, "编辑失败，该标签在数据库中不存在");
   }
   if (DenyEdit(auth.username)) {

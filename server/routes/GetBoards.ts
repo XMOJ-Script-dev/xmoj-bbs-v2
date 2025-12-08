@@ -9,8 +9,9 @@ export default eventHandler(async (event) => {
   const { Data } = body;
   
   // Support optional pagination
-  const limit = Data?.Limit || DEFAULT_LIMIT;
-  const offset = Data?.Offset || 0;
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const limit = clamp(Number.isFinite(Data?.Limit) ? Data.Limit : DEFAULT_LIMIT, 1, 200);
+  const offset = clamp(Number.isFinite(Data?.Offset) ? Data.Offset : 0, 0, 10000);
   
   const Boards: Array<Object> = [];
   const BoardsData = ThrowErrorIfFailed(await auth.database.Select("bbs_board", [], undefined, { Limit: limit, Offset: offset }));
