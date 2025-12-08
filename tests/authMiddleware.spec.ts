@@ -10,9 +10,7 @@ vi.mock('../server/utils/auth', async (orig) => {
 
 describe('Auth middleware', () => {
   it('stores auth context on success', async () => {
-    const cloudflare = { env: { DB: { prepare: () => ({ bind: () => ({ all: async () => ({ results: [], meta: {} }) }) }) } } } } as any;
-    const DatabaseCls = Database as any;
-    const XMOJDatabase = new DatabaseCls(cloudflare.env.DB);
+    const cloudflare: any = { env: { DB: { prepare: () => ({ bind: () => ({ all: async () => ({ results: [], meta: {} }) }) }) } } };
     const event: any = { method: 'POST', path: '/SendMail', context: { cloudflare } };
 
     const body = { Authentication: { SessionID: 'abc', Username: 'u' }, Data: {} };

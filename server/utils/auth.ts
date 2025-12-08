@@ -37,16 +37,18 @@ const DenyBadgeEditList: Array<string> = [];
 export async function CheckToken(
   SessionID: string,
   Username: string,
-  XMOJDatabase: Database
+  XMOJDatabase: Database,
+  // Optional KV for distributed cache
+  KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: any) => Promise<void> }
 ): Promise<Result> {
   const HashedToken: string = CryptoJS.SHA3(SessionID).toString();
   const CurrentSessionData = ThrowErrorIfFailed(await XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
     token: HashedToken
   }));
   
-  if (CurrentSessionData.toString() !== "") {
-    if (CurrentSessionData[0]["user_id"] === Username &&
-      CurrentSessionData[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
+  if ((CurrentSessionData as any[]).toString() !== "") {
+    if ((CurrentSessionData as any[])[0]["user_id"] === Username &&
+      (CurrentSessionData as any[])[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
       return new Result(true, "令牌匹配");
     } else {
       ThrowErrorIfFailed(await XMOJDatabase.Delete("phpsessid", {
@@ -56,14 +58,34 @@ export async function CheckToken(
     }
   }
 
-  // Short-term cache to reduce external calls
+  // Distributed KV cache preferred if available
+    if (KV) {
+    const kvCached = await KV.get(`sess:${SessionID}`);
+    if (kvCached) {
+      if (kvCached === Username) {
+          const tableSizeResult = ThrowErrorIfFailed(
+            await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+          ) as { TableSize: number };
+          if (tableSizeResult.TableSize === 0) {
+          ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() }));
+        }
+        return new Result(true, "令牌匹配");
+      } else {
+        return new Result(false, "令牌不匹配");
+      }
+    }
+  }
+  // Short-term in-memory cache to reduce external calls
   // @ts-ignore
   const globalCache = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
   const cached = globalCache.get(SessionID);
   if (cached && (new Date().getTime() - cached.t) < (5 * 60 * 1000)) {
     if (cached.u === Username) {
       Output.Log("Using cached session for user");
-      if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken }))['TableSize'] == 0) {
+      const tableSizeResult = ThrowErrorIfFailed(
+        await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+      ) as { TableSize: number };
+      if (tableSizeResult.TableSize === 0) {
         ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() }));
       }
       return new Result(true, "令牌匹配");
@@ -113,9 +135,10 @@ export async function CheckToken(
     return new Result(false, "令牌不匹配");
   }
   
-  if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", {
+  const tableSizeObj = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", {
     token: HashedToken
-  }))["TableSize"] == 0) {
+  }));
+  if ((tableSizeObj as any)["TableSize"] == 0) {
     ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", {
       token: HashedToken,
       user_id: Username,

@@ -58,56 +58,49 @@ export default eventHandler(async (event) => {
     SearchCondition["board_id"] = Data.BoardID;
   }
   
-  const Posts = ThrowErrorIfFailed(await auth.database.Select("bbs_post", [], SearchCondition, {
-    Order: "post_id",
-    OrderIncreasing: false,
-    Limit: PAGE_SIZE,
-    Offset: (Data.Page - 1) * PAGE_SIZE
-  }));
-  
-  for (const Post of (Posts as any[])) {
-    
-    const ReplyCount: number = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_reply", { post_id: Post["post_id"] }))["TableSize"];
-    const LastReply = ThrowErrorIfFailed(await auth.database.Select("bbs_reply", ["user_id", "reply_time"], { post_id: Post["post_id"] }, {
-      Order: "reply_time",
-      OrderIncreasing: false,
-      Limit: 1
-    }));
-    
-    if (ReplyCount === 0) {
-      await auth.database.Delete("bbs_post", {
-        post_id: Post["post_id"]
-      });
+  // Batch query to avoid N+1: join board and use subqueries for reply stats and lock info
+  const offset = (Data.Page - 1) * PAGE_SIZE;
+  const whereClauses: string[] = [];
+  const bindParams: any[] = [];
+  if (SearchCondition["problem_id"]) { whereClauses.push("p.problem_id = ?"); bindParams.push(SearchCondition["problem_id"]); }
+  if (SearchCondition["board_id"]) { whereClauses.push("p.board_id = ?"); bindParams.push(SearchCondition["board_id"]); }
+  const whereSql = whereClauses.length ? ("WHERE " + whereClauses.join(" AND ")) : "";
+  const sql = `
+    SELECT p.post_id, p.user_id, p.problem_id, p.title, p.post_time, p.board_id,
+           b.board_name,
+           (SELECT COUNT(*) FROM bbs_reply r WHERE r.post_id = p.post_id) AS reply_count,
+           (SELECT r2.user_id FROM bbs_reply r2 WHERE r2.post_id = p.post_id ORDER BY r2.reply_time DESC LIMIT 1) AS last_reply_user_id,
+           (SELECT r3.reply_time FROM bbs_reply r3 WHERE r3.post_id = p.post_id ORDER BY r3.reply_time DESC LIMIT 1) AS last_reply_time,
+           (SELECT lock_person FROM bbs_lock l WHERE l.post_id = p.post_id LIMIT 1) AS lock_person,
+           (SELECT lock_time FROM bbs_lock l WHERE l.post_id = p.post_id LIMIT 1) AS lock_time
+    FROM bbs_post p
+    LEFT JOIN bbs_board b ON b.board_id = p.board_id
+    ${whereSql}
+    ORDER BY p.post_id DESC
+    LIMIT ${PAGE_SIZE} OFFSET ${offset}
+  `;
+  const rows = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams).all();
+  for (const row of rows.results) {
+    if ((row.reply_count ?? 0) === 0) {
+      await auth.database.Delete("bbs_post", { post_id: row.post_id });
       continue;
     }
-    
     const LockData = {
-      Locked: false,
-      LockPerson: "",
-      LockTime: 0
+      Locked: !!row.lock_person,
+      LockPerson: row.lock_person || "",
+      LockTime: row.lock_time || 0
     };
-    const Locked = ThrowErrorIfFailed(await auth.database.Select("bbs_lock", [], {
-      post_id: Post["post_id"]
-    }));
-    if (Locked.toString() !== "") {
-      LockData.Locked = true;
-      LockData.LockPerson = Locked[0]["lock_person"];
-      LockData.LockTime = Locked[0]["lock_time"];
-    }
-    
     ResponseData.Posts.push({
-      PostID: Post["post_id"],
-      UserID: Post["user_id"],
-      ProblemID: Post["problem_id"],
-      Title: Post["title"],
-      PostTime: Post["post_time"],
-      BoardID: Post["board_id"],
-      BoardName: ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], {
-        board_id: Post["board_id"]
-      }))[0]["board_name"],
-      ReplyCount: ReplyCount,
-      LastReplyUserID: LastReply[0]["user_id"],
-      LastReplyTime: LastReply[0]["reply_time"],
+      PostID: row.post_id,
+      UserID: row.user_id,
+      ProblemID: row.problem_id,
+      Title: row.title,
+      PostTime: row.post_time,
+      BoardID: row.board_id,
+      BoardName: row.board_name,
+      ReplyCount: row.reply_count,
+      LastReplyUserID: row.last_reply_user_id,
+      LastReplyTime: row.last_reply_time,
       Lock: LockData
     });
   }

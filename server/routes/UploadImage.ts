@@ -22,7 +22,7 @@ export default defineEventHandler(async (event: H3Event) => {
     if (!base64) return new Result(false, 'Missing base64 image data')
 
     const now = Date.now()
-    const id = `${now}-${Math.random().toString(36).slice(2, 8)}`
+    const id = crypto.randomUUID()
     const targetPath = `images/${id}${filename ? '_' + filename : ''}`
 
     const content = base64.replace(/^data:[^;]+;base64,/, '')

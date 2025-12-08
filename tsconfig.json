@@ -2,6 +2,7 @@
 {
   "extends": [],
   "compilerOptions": {
+      "strict": true,
     "typeRoots": ["./node_modules/@types", "./types"],
     "noEmit": true,
     "target": "esnext",

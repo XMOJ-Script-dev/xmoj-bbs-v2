@@ -5,6 +5,13 @@ declare const defineEventHandler: any;
 declare function readBody(event: any): Promise<any>;
 
 const BUCKET = new Map<string, { tokens: number; last: number }>();
+const TTL_MS = 5 * 60 * 1000; // 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of BUCKET.entries()) {
+    if (now - bucket.last > TTL_MS) BUCKET.delete(key);
+  }
+}, 60 * 1000);
 const CAPACITY = 30; // max 30 ops
 const REFILL_PER_SEC = 10; // 10 tokens per second
 

@@ -23,12 +23,12 @@ import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
 import { CheckToken } from "~/utils/auth";
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event: any) => {
   const path = event.path;
   
   // Skip authentication for public endpoints
   const publicEndpoints = ["/GetNotice", "/GetAddOnScript", "/GetImage", "/"];
-  if (publicEndpoints.some(endpoint => path.includes(endpoint)) || path === "/") {
+  if (publicEndpoints.some(endpoint => path.startsWith(endpoint))) {
     return;
   }
   // Basic rate-limit middleware runs before auth for POSTs
@@ -45,7 +45,13 @@ export default defineEventHandler(async (event) => {
     
     // Check if body has required authentication fields
     // Rate limiting is handled separately; proceed to auth
-    const { Authentication, Data, Version, DebugMode } = body;
+    if (!body || typeof body !== 'object') {
+      return;
+    }
+    const { Authentication, Version, DebugMode } = body as any;
+    if (!Authentication || typeof Authentication !== 'object') {
+      throw new Result(false, "认证信息不完整");
+    }
     
     // Validate Authentication object
     if (!Authentication.SessionID || !Authentication.Username) {
@@ -59,7 +65,9 @@ export default defineEventHandler(async (event) => {
     ThrowErrorIfFailed(await CheckToken(
       Authentication.SessionID,
       Authentication.Username,
-      XMOJDatabase
+      XMOJDatabase,
+      // Pass KV if available for distributed cache
+      (cloudflare.env as any).SESSION_KV
     ));
     
     // Store authenticated user info in context
