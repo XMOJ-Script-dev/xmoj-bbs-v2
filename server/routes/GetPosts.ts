@@ -26,19 +26,21 @@ export default eventHandler(async (event) => {
   ThrowErrorIfFailed(CheckParams(Data, {
     "ProblemID": "number",
     "Page": "number",
-    "BoardID": "number"
+    "BoardID": "number",
+    "Limit": "number"
   }));
   
+  const PAGE_SIZE = Data.Limit && Data.Limit > 0 ? Data.Limit : 15;
   let ResponseData = {
     Posts: new Array<Object>,
     PageCount: Data.BoardID !== -1 ? (Data.ProblemID !== 0 ? Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
       board_id: Data.BoardID,
       problem_id: Data.ProblemID
-    }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
+    }))["TableSize"] / PAGE_SIZE) : Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
       board_id: Data.BoardID
-    }))["TableSize"] / 15)) : (Data.ProblemID !== 0 ? Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
+    }))["TableSize"] / PAGE_SIZE)) : (Data.ProblemID !== 0 ? Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
       problem_id: Data.ProblemID
-    }))["TableSize"] / 15) : Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post"))["TableSize"] / 15))
+    }))["TableSize"] / PAGE_SIZE) : Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post"))["TableSize"] / PAGE_SIZE))
   };
   
   if (ResponseData.PageCount === 0) {
@@ -59,12 +61,11 @@ export default eventHandler(async (event) => {
   const Posts = ThrowErrorIfFailed(await auth.database.Select("bbs_post", [], SearchCondition, {
     Order: "post_id",
     OrderIncreasing: false,
-    Limit: 15,
-    Offset: (Data.Page - 1) * 15
+    Limit: PAGE_SIZE,
+    Offset: (Data.Page - 1) * PAGE_SIZE
   }));
   
-  for (const i in Posts) {
-    const Post = Posts[i];
+  for (const Post of (Posts as any[])) {
     
     const ReplyCount: number = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_reply", { post_id: Post["post_id"] }))["TableSize"];
     const LastReply = ThrowErrorIfFailed(await auth.database.Select("bbs_reply", ["user_id", "reply_time"], { post_id: Post["post_id"] }, {

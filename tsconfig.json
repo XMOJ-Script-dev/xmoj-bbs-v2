@@ -1,13 +1,23 @@
 // https://nitro.unjs.io/guide/typescript
 {
-  "extends": "./.nitro/types/tsconfig.json",
-
+  "extends": [],
   "compilerOptions": {
     "typeRoots": ["./node_modules/@types", "./types"],
-    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "target": "esnext",
-    "module": "esnext",
-    "lib": ["esnext"],
-    "types": ["@cloudflare/workers-types"]
-  }
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["server/*"],
+      "#nitro": [".nitro/types/index.d.ts"]
+    },
+    "lib": ["esnext", "dom"],
+    "types": []
+  },
+  "include": [
+    "server/**/*.ts",
+    "nitro.config.ts",
+    "types/**/*.d.ts"
+  ]
 }

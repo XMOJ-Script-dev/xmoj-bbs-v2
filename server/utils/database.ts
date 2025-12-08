@@ -21,6 +21,38 @@ import type { D1Database } from "@cloudflare/workers-types";
 
 let readonly = false; // set to true to allow maintenance
 
+// Whitelist of allowed tables and columns to prevent SQL injection
+const ALLOWED_TABLES = [
+  'bbs_post', 'bbs_reply', 'bbs_board', 'bbs_mention', 'bbs_lock',
+  'badge', 'phpsessid', 'mail', 'image', 'std'
+];
+
+const ALLOWED_COLUMNS: Record<string, string[]> = {
+  'bbs_post': ['post_id', 'user_id', 'title', 'content', 'board_id', 'post_time', 'last_reply_time'],
+  'bbs_reply': ['reply_id', 'post_id', 'user_id', 'content', 'reply_time'],
+  'bbs_board': ['board_id', 'board_name'],
+  'bbs_mention': ['bbs_mention_id', 'post_id', 'reply_id', 'to_user_id', 'from_user_id', 'bbs_mention_time'],
+  'bbs_lock': ['post_id', 'lock_time'],
+  'badge': ['user_id', 'background_color', 'color', 'content'],
+  'phpsessid': ['token', 'user_id', 'create_time'],
+  'mail': ['mail_id', 'from_user_id', 'to_user_id', 'title', 'content', 'send_time', 'read'],
+  'image': ['image_id', 'user_id', 'path', 'upload_time'],
+  'std': ['std_id', 'user_id', 'problem_id', 'content', 'upload_time']
+};
+
+function validateTableName(table: string): void {
+  if (!ALLOWED_TABLES.includes(table)) {
+    throw new Error('Invalid table name');
+  }
+}
+
+function validateColumnName(table: string, column: string): void {
+  const allowedCols = ALLOWED_COLUMNS[table];
+  if (!allowedCols || !allowedCols.includes(column)) {
+    throw new Error('Invalid column name');
+  }
+}
+
 export class Database {
   private RawDatabase: D1Database;
 
@@ -42,7 +74,7 @@ export class Database {
         "    Query    : \"" + QueryString + "\"\n" +
         "    Arguments: " + JSON.stringify(BindData) + "\n" +
         "    Error    : \"" + ErrorDetail);
-      return new Result(false, "数据库查询失败：" + String(ErrorDetail));
+      return new Result(false, "数据库查询失败，请稍后重试");
     }
   }
 
@@ -50,20 +82,23 @@ export class Database {
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
+    validateTableName(Table);
     let QueryString = "INSERT INTO `" + Table + "` (";
-    for (let i in Data) {
+    for (const key of Object.keys(Data)) {
+      validateColumnName(Table, key);
+      const i = key;
       QueryString += "`" + i + "`, ";
     }
     QueryString = QueryString.substring(0, QueryString.length - 2);
     QueryString += ") VALUES (";
-    for (const _ of Data) {
+    for (const _ of Object.keys(Data)) {
       QueryString += "?, ";
     }
     QueryString = QueryString.substring(0, QueryString.length - 2);
     QueryString += ");";
     let BindData = Array();
-    for (let i in Data) {
-      BindData.push(Data[i]);
+    for (const key of Object.keys(Data)) {
+      BindData.push(Data[key]);
     }
     return new Result(true, "数据库插入成功", {
       "InsertID": ThrowErrorIfFailed(await this.Query(QueryString, BindData))["meta"]["last_row_id"]
@@ -71,6 +106,7 @@ export class Database {
   }
 
   public async Select(Table: string, Data: string[], Condition?: object, Other?: object, Distinct?: boolean): Promise<Result> {
+    validateTableName(Table);
     let QueryString = "SELECT ";
     if (Distinct !== undefined && Distinct) {
       QueryString += "DISTINCT ";
@@ -79,6 +115,7 @@ export class Database {
       QueryString += "*";
     } else {
       for (const col of Data) {
+        validateColumnName(Table, col);
         QueryString += "`" + col + "`, ";
       }
       QueryString = QueryString.substring(0, QueryString.length - 2);
@@ -86,7 +123,9 @@ export class Database {
     QueryString += " FROM `" + Table + "`";
     if (Condition !== undefined) {
       QueryString += " WHERE ";
-      for (let i in Condition) {
+      for (const key of Object.keys(Condition)) {
+        validateColumnName(Table, key);
+        const i = key;
         if (typeof Condition[i] != "object") {
           QueryString += "`" + i + "` = ? AND ";
         } else {
@@ -112,11 +151,13 @@ export class Database {
     }
     QueryString += ";";
     let BindData = Array();
-    for (let i in Condition) {
-      if (typeof Condition[i] != "object") {
-        BindData.push(Condition[i]);
-      } else {
-        BindData.push(Condition[i]["Value"]);
+    if (Condition !== undefined) {
+      for (const key of Object.keys(Condition)) {
+        if (typeof Condition[key] != "object") {
+          BindData.push(Condition[key]);
+        } else {
+          BindData.push(Condition[key]["Value"]);
+        }
       }
     }
     return new Result(true, "数据库查找成功", ThrowErrorIfFailed(await this.Query(QueryString, BindData))["results"]);
@@ -126,57 +167,66 @@ export class Database {
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
+    validateTableName(Table);
     let QueryString = "UPDATE `" + Table + "` SET ";
-    for (let i in Data) {
-      QueryString += "`" + i + "` = ?, ";
+    for (const key of Object.keys(Data)) {
+      validateColumnName(Table, key);
+      QueryString += "`" + key + "` = ?, ";
     }
     QueryString = QueryString.substring(0, QueryString.length - 2);
     if (Condition !== undefined) {
       QueryString += " WHERE ";
-      for (let i in Condition) {
-        if (typeof Condition[i] != "object") {
-          QueryString += "`" + i + "` = ? AND ";
+      for (const key of Object.keys(Condition)) {
+        validateColumnName(Table, key);
+        if (typeof Condition[key] != "object") {
+          QueryString += "`" + key + "` = ? AND ";
         } else {
-          QueryString += "`" + i + "` " + Condition[i]["Operator"] + " ? AND ";
+          QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
     }
     QueryString += ";";
     let BindData = Array();
-    for (let i in Data) {
-      BindData.push(Data[i]);
+    for (const key of Object.keys(Data)) {
+      BindData.push(Data[key]);
     }
-    for (let i in Condition) {
-      if (typeof Condition[i] != "object") {
-        BindData.push(Condition[i]);
-      } else {
-        BindData.push(Condition[i]["Value"]);
+    if (Condition !== undefined) {
+      for (const key of Object.keys(Condition)) {
+        if (typeof Condition[key] != "object") {
+          BindData.push(Condition[key]);
+        } else {
+          BindData.push(Condition[key]["Value"]);
+        }
       }
     }
     return new Result(true, "数据库更新成功", ThrowErrorIfFailed(await this.Query(QueryString, BindData))["results"]);
   }
 
   public async GetTableSize(Table: string, Condition?: object): Promise<Result> {
+    validateTableName(Table);
     let QueryString = "SELECT COUNT(*) FROM `" + Table + "`";
     if (Condition !== undefined) {
       QueryString += " WHERE ";
-      for (let i in Condition) {
-        if (typeof Condition[i] != "object") {
-          QueryString += "`" + i + "` = ? AND ";
+      for (const key of Object.keys(Condition)) {
+        validateColumnName(Table, key);
+        if (typeof Condition[key] != "object") {
+          QueryString += "`" + key + "` = ? AND ";
         } else {
-          QueryString += "`" + i + "` " + Condition[i]["Operator"] + " ? AND ";
+          QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
     }
     QueryString += ";";
     let BindData = Array();
-    for (let i in Condition) {
-      if (typeof Condition[i] != "object") {
-        BindData.push(Condition[i]);
-      } else {
-        BindData.push(Condition[i]["Value"]);
+    if (Condition !== undefined) {
+      for (const key of Object.keys(Condition)) {
+        if (typeof Condition[key] != "object") {
+          BindData.push(Condition[key]);
+        } else {
+          BindData.push(Condition[key]["Value"]);
+        }
       }
     }
     return new Result(true, "数据库获得大小成功", {
@@ -188,25 +238,29 @@ export class Database {
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
+    validateTableName(Table);
     let QueryString = "DELETE FROM `" + Table + "`";
     if (Condition !== undefined) {
       QueryString += " WHERE ";
-      for (let i in Condition) {
-        if (typeof Condition[i] != "object") {
-          QueryString += "`" + i + "` = ? AND ";
+      for (const key of Object.keys(Condition)) {
+        validateColumnName(Table, key);
+        if (typeof Condition[key] != "object") {
+          QueryString += "`" + key + "` = ? AND ";
         } else {
-          QueryString += "`" + i + "` " + Condition[i]["Operator"] + " ? AND ";
+          QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
     }
     QueryString += ";";
     let BindData = Array();
-    for (let i in Condition) {
-      if (typeof Condition[i] != "object") {
-        BindData.push(Condition[i]);
-      } else {
-        BindData.push(Condition[i]["Value"]);
+    if (Condition !== undefined) {
+      for (const key of Object.keys(Condition)) {
+        if (typeof Condition[key] != "object") {
+          BindData.push(Condition[key]);
+        } else {
+          BindData.push(Condition[key]["Value"]);
+        }
       }
     }
     return new Result(true, "数据库删除成功", ThrowErrorIfFailed(await this.Query(QueryString, BindData))["results"]);

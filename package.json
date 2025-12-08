@@ -4,12 +4,18 @@
     "build": "nitro build",
     "dev": "nitro dev",
     "prepare": "nitro prepare",
-    "preview": "node .output/server/index.mjs"
+    "preview": "node .output/server/index.mjs",
+    "test": "vitest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240903.0",
     "@types/node": "^20.10.0",
-    "nitropack": "latest"
+    "nitropack": "latest",
+    "vitest": "^1.5.0",
+    "eslint": "^9.12.0",
+    "@typescript-eslint/parser": "^8.8.0",
+    "@typescript-eslint/eslint-plugin": "^8.8.0",
+    "ajv-cli": "^5.0.0"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",

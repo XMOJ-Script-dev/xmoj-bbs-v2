@@ -21,6 +21,14 @@ import { Output } from "./output";
 // @ts-ignore
 import CryptoJS from "crypto-js";
 
+// Time constants
+const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const SESSION_EXPIRY_DAYS = 7;
+const SESSION_EXPIRY_MS = SESSION_EXPIRY_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+
 const AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
 const DenyMessageList: Array<string> = ["std"];
 const SilencedUser: Array<string> = ["zhaochenyi", "qianwenyu"];
@@ -38,13 +46,29 @@ export async function CheckToken(
   
   if (CurrentSessionData.toString() !== "") {
     if (CurrentSessionData[0]["user_id"] === Username &&
-      CurrentSessionData[0]["create_time"] + 1000 * 60 * 60 * 24 * 7 > new Date().getTime()) {
+      CurrentSessionData[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
       return new Result(true, "令牌匹配");
     } else {
       ThrowErrorIfFailed(await XMOJDatabase.Delete("phpsessid", {
         token: HashedToken
       }));
       Output.Log("Session " + SessionID + " expired");
+    }
+  }
+
+  // Short-term cache to reduce external calls
+  // @ts-ignore
+  const globalCache = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
+  const cached = globalCache.get(SessionID);
+  if (cached && (new Date().getTime() - cached.t) < (5 * 60 * 1000)) {
+    if (cached.u === Username) {
+      Output.Log("Using cached session for user");
+      if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken }))['TableSize'] == 0) {
+        ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() }));
+      }
+      return new Result(true, "令牌匹配");
+    } else {
+      return new Result(false, "令牌不匹配");
     }
   }
 
@@ -67,6 +91,7 @@ export async function CheckToken(
     }).then((Response) => {
       let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
       SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
+      globalCache.set(SessionID, { u: SessionUsername, t: new Date().getTime() });
       return SessionUsername;
     }).catch((Error) => {
       Output.Error("Check token failed: " + Error + "\n" +

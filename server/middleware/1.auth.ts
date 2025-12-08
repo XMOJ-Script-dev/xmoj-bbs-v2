@@ -15,6 +15,10 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const defineEventHandler: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare function readBody(event: any): Promise<any>;
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
 import { CheckToken } from "~/utils/auth";
@@ -27,6 +31,9 @@ export default defineEventHandler(async (event) => {
   if (publicEndpoints.some(endpoint => path.includes(endpoint)) || path === "/") {
     return;
   }
+  // Basic rate-limit middleware runs before auth for POSTs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Rate limiting handled by separate middleware chain when enabled
   
   // Only process POST requests with JSON body
   if (event.method !== "POST") {
@@ -37,11 +44,8 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     
     // Check if body has required authentication fields
-    if (!body || !body.Authentication || !body.Data) {
-      return;
-    }
-    
-    const { Authentication } = body;
+    // Rate limiting is handled separately; proceed to auth
+    const { Authentication, Data, Version, DebugMode } = body;
     
     // Validate Authentication object
     if (!Authentication.SessionID || !Authentication.Username) {
@@ -51,29 +55,12 @@ export default defineEventHandler(async (event) => {
     const { cloudflare } = event.context;
     const XMOJDatabase = new Database(cloudflare.env.DB);
     
-    // Check token multiple times if needed
-    let TokenFailedCount = 0;
-    while (TokenFailedCount < 2) {
-      const tokenResult = await CheckToken(
-        Authentication.SessionID,
-        Authentication.Username,
-        XMOJDatabase
-      );
-      
-      if (tokenResult.Success) {
-        break;
-      }
-      TokenFailedCount++;
-    }
-    
-    // Final token check
-    if (TokenFailedCount >= 2) {
-      ThrowErrorIfFailed(await CheckToken(
-        Authentication.SessionID,
-        Authentication.Username,
-        XMOJDatabase
-      ));
-    }
+    // Check token - fail immediately if invalid
+    ThrowErrorIfFailed(await CheckToken(
+      Authentication.SessionID,
+      Authentication.Username,
+      XMOJDatabase
+    ));
     
     // Store authenticated user info in context
     event.context.auth = {

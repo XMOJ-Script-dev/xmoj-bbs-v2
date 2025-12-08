@@ -15,17 +15,36 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+function redactSensitive(message: any): any {
+  if (typeof message !== 'string') return message;
+  return message
+    .replace(/PHPSESSID=([a-zA-Z0-9]+)/g, 'PHPSESSID=<redacted>')
+    .replace(/token\s*:\s*"?[a-f0-9]{32,}"?/gi, 'token:"<redacted>"');
+}
+
+function isProduction(): boolean {
+  try {
+    // @ts-ignore
+    const env = (globalThis as any)?.cloudflare?.env || {};
+    return (env.NODE_ENV || '').toLowerCase() === 'production';
+  } catch {
+    return false;
+  }
+}
+
 export class Output {
   public static Debug(Message: any): void {
-    // console.debug("\x1b[36m%s\x1b[0m", Message);
+    if (!isProduction()) {
+      console.debug("\x1b[36m%s\x1b[0m", redactSensitive(Message));
+    }
   }
   public static Log(Message: any): void {
-    console.log("\x1b[32m%s\x1b[0m", Message);
+    console.log("\x1b[32m%s\x1b[0m", redactSensitive(Message));
   }
   public static Warn(Message: any): void {
-    console.warn("\x1b[33m%s\x1b[0m", Message);
+    console.warn("\x1b[33m%s\x1b[0m", redactSensitive(Message));
   }
   public static Error(Message: any): void {
-    console.error("\x1b[31m%s\x1b[0m", Message);
+    console.error("\x1b[31m%s\x1b[0m", redactSensitive(Message));
   }
 }

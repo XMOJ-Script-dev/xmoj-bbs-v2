@@ -1,5 +1,7 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const eventHandler: any;
 import CryptoJS from "crypto-js";
 
 export default eventHandler(async (event) => {
@@ -7,9 +9,9 @@ export default eventHandler(async (event) => {
   const ResponseData = { MailList: new Array<Object>() };
   let OtherUsernameList: string[] = [];
   let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", ["message_from"], { message_to: auth.username }, {}, true));
-  for (const i in Mails) OtherUsernameList.push(Mails[i]['message_from']);
+  for (const mail of (Mails as any[])) OtherUsernameList.push(mail['message_from']);
   Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", ["message_to"], { message_from: auth.username }, {}, true));
-  for (const mail of Mails) OtherUsernameList.push(mail['message_to']);
+  for (const mail of (Mails as any[])) OtherUsernameList.push(mail['message_to']);
   OtherUsernameList = Array.from(new Set(OtherUsernameList));
   for (const other of OtherUsernameList) {
     const LastMessageFrom = ThrowErrorIfFailed(await auth.database.Select("short_message", ["content", "send_time", "message_from", "message_to"], { message_from: other, message_to: auth.username }, { Order: "send_time", OrderIncreasing: false, Limit: 1 }));
@@ -34,8 +36,8 @@ export default eventHandler(async (event) => {
       const preContent = LastMessage[0]['content'];
       LastMessage[0]['content'] = "无法解密消息, 原始数据: " + preContent;
     }
-    const UnreadCount = ThrowErrorIfFailed(await auth.database.GetTableSize("short_message", { message_from: OtherUsernameList[i], message_to: auth.username, is_read: 0 }));
-    ResponseData.MailList.push({ OtherUser: OtherUsernameList[i], LastsMessage: LastMessage[0]['content'], SendTime: LastMessage[0]['send_time'], UnreadCount: UnreadCount['TableSize'] });
+    const UnreadCount = ThrowErrorIfFailed(await auth.database.GetTableSize("short_message", { message_from: other, message_to: auth.username, is_read: 0 }));
+    ResponseData.MailList.push({ OtherUser: other, LastsMessage: LastMessage[0]['content'], SendTime: LastMessage[0]['send_time'], UnreadCount: UnreadCount['TableSize'] });
   }
   ResponseData.MailList.sort((a, b) => a['SendTime'] < b['SendTime'] ? 1 : -1);
   return new Result(true, "获得短消息列表成功", ResponseData);

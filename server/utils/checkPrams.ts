@@ -18,21 +18,21 @@
 import { Result } from "~/utils/resultUtils";
 
 export const CheckParams = (Data: object, Checklist: object): Result => {
-  for (const i in Data) {
-    if (Checklist[i] === undefined) {
-      return new Result(false, "参数" + i + "未知");
+  for (const key of Object.keys(Data as any)) {
+    if ((Checklist as any)[key] === undefined) {
+      return new Result(false, "参数" + key + "未知");
     }
     const AvailableTypes = ["string", "number", "bigint", "boolean", "symbol", "undefined", "object", "function"];
-    if (AvailableTypes.indexOf(Checklist[i]) === -1) {
-      return new Result(false, "参数类型" + Checklist[i] + "未知");
+    if (AvailableTypes.indexOf((Checklist as any)[key]) === -1) {
+      return new Result(false, "参数类型" + (Checklist as any)[key] + "未知");
     }
-    if (typeof Data[i] !== Checklist[i]) {
-      return new Result(false, "参数" + i + "期望类型" + Checklist[i] + "实际类型" + typeof Data[i]);
+    if (typeof (Data as any)[key] !== (Checklist as any)[key]) {
+      return new Result(false, "参数" + key + "期望类型" + (Checklist as any)[key] + "实际类型" + typeof (Data as any)[key]);
     }
   }
-  for (const i in Checklist) {
-    if (Data[i] === undefined) {
-      return new Result(false, "参数" + i + "未找到");
+  for (const key of Object.keys(Checklist as any)) {
+    if ((Data as any)[key] === undefined) {
+      return new Result(false, "参数" + key + "未找到");
     }
   }
   return new Result(true, "参数检测通过");

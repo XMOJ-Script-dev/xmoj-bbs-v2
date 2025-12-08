@@ -11,8 +11,7 @@ export default eventHandler(async (event) => {
   ThrowErrorIfFailed(CheckParams(Data, { "OtherUser": "string" }));
   const ResponseData = { Mail: new Array<Object>() };
   let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: Data.OtherUser, message_to: auth.username }, { Order: "send_time", OrderIncreasing: false }));
-  for (const i in Mails) {
-    const Mail = Mails[i];
+  for (const Mail of (Mails as any[])) {
     try {
       if (Mail['content'].startsWith("Begin xssmseetee v2 encrypted message")) {
         Mail['content'] = CryptoJS.AES.decrypt(Mail['content'].substring(37), cloudflare.env.xssmseetee_v1_key + Mail['message_from'] + Mail['message_to']).toString(CryptoJS.enc.Utf8);
@@ -35,8 +34,7 @@ export default eventHandler(async (event) => {
     });
   }
   Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: auth.username, message_to: Data.OtherUser }, { Order: "send_time", OrderIncreasing: false }));
-  for (const i in Mails) {
-    const Mail = Mails[i];
+  for (const Mail of (Mails as any[])) {
     try {
       if (Mail['content'].startsWith("Begin xssmseetee v2 encrypted message")) {
         Mail['content'] = CryptoJS.AES.decrypt(Mail['content'].substring(37), cloudflare.env.xssmseetee_v1_key + Mail['message_from'] + Mail['message_to']).toString(CryptoJS.enc.Utf8);

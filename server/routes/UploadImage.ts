@@ -12,9 +12,10 @@ export default defineEventHandler(async (event: H3Event) => {
     if (!check.Success) return new Result(false, check.Message)
 
     const { Data } = body
-    const pat = process.env.GithubImagePAT
-    const repoOwner = process.env.GithubImageOwner || 'XMOJ-Script-dev'
-    const repoName = process.env.GithubImageRepo || 'xmoj-bbs-images'
+    const { cloudflare } = event.context
+    const pat = cloudflare.env.GithubImagePAT
+    const repoOwner = cloudflare.env.GithubImageOwner || 'XMOJ-Script-dev'
+    const repoName = cloudflare.env.GithubImageRepo || 'xmoj-bbs-images'
     if (!pat) return new Result(false, 'Missing GithubImagePAT')
 
     const { filename, base64 } = Data || {}

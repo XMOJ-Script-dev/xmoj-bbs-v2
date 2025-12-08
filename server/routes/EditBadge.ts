@@ -30,6 +30,11 @@ export default eventHandler(async (event) => {
   if (Data.Content.trim() === "") {
     return new Result(false, "内容不能仅包含空格");
   }
+  // Prevent control characters (U+0000 to U+001F, U+007F to U+009F)
+  const controlCharPattern = /[\u0000-\u001F\u007F-\u009F]/;
+  if (controlCharPattern.test(Data.Content)) {
+    return new Result(false, "内容包含不允许的控制字符");
+  }
   const check = await cloudflare.env.AI.run("@cf/huggingface/distilbert-sst-2-int8", { text: Data.Content });
     if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"] > 0.90) {
     return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
