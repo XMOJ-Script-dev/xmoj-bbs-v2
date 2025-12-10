@@ -15,7 +15,6 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare function readBody(event: any): Promise<any>
 import { Result } from '../utils/resultUtils'
 import { CheckParams } from '../utils/checkParams'
@@ -54,7 +53,6 @@ export default defineEventHandler(async (event: any) => {
       return new Result(false, 'Invalid filename')
     }
 
-    const now = Date.now()
     const id = crypto.randomUUID()
     const targetPath = `images/${id}${filename ? '_' + filename : ''}`
 

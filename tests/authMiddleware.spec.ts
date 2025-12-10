@@ -1,7 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Result } from '../server/utils/resultUtils';
-import { Database } from '../server/utils/database';
-import { CheckToken } from '../server/utils/auth';
 
 vi.mock('../server/utils/auth', async (orig) => {
   const mod = await orig();

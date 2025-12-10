@@ -17,6 +17,6 @@
 
 import { Result } from "~/utils/resultUtils";
 
-export default eventHandler(async (event) => {
+export default eventHandler(async (_event) => {
   return new Result(true, "测试成功", { message: "XMOJ-BBS v2 API is working" });
 });

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Database } from '../server/utils/database';
 
 class FakeD1 {
-  prepare(q: string) { return { bind: (...args: any[]) => ({ all: async () => ({ results: [], meta: {} }) }) } }
+  prepare(_q: string) { return { bind: (..._args: any[]) => ({ all: async () => ({ results: [], meta: {} }) }) } }
 }
 
 describe('Database validation', () => {

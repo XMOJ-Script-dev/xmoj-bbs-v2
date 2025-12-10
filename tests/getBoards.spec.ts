@@ -3,7 +3,7 @@ import { Database } from '../server/utils/database';
 
 describe('GetBoards pagination', () => {
   class FakeD1 {
-    prepare(q: string) { return { bind: (...args: any[]) => ({ all: async () => ({ results: Array.from({ length: 3 }, (_, i) => ({ board_id: i+1, board_name: 'b'+(i+1) })), meta: {} }) }) } }
+    prepare(_q: string) { return { bind: (..._args: any[]) => ({ all: async () => ({ results: Array.from({ length: 3 }, (_, i) => ({ board_id: i+1, board_name: 'b'+(i+1) })), meta: {} }) }) } }
   }
   it('select uses limit/offset', async () => {
     const db = new Database(new FakeD1() as any);

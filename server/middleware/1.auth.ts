@@ -29,7 +29,6 @@ export default defineEventHandler(async (event: any) => {
     return;
   }
   // Basic rate-limit middleware runs before auth for POSTs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // Rate limiting handled by separate middleware chain when enabled
   
   // Only process POST requests with JSON body

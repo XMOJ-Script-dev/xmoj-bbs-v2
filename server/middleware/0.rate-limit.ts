@@ -1,7 +1,5 @@
 /* Auto-mounted rate limiter: runs before 1.auth.ts */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const defineEventHandler: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare function readBody(event: any): Promise<any>;
 
 const CAPACITY = 30; // max 30 ops
@@ -33,7 +31,6 @@ export default defineEventHandler(async (event: any) => {
     return;
   }
   // Fallback: global in-memory token bucket without timers; cleaned on access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalBuckets: Map<string, { tokens: number; last: number }> = (globalThis as any).__rlBuckets || ((globalThis as any).__rlBuckets = new Map());
   const TTL_MS = 5 * 60 * 1000;
   // Cleanup stale entries opportunistically
