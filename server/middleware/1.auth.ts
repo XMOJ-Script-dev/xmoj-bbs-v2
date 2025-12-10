@@ -21,7 +21,7 @@ import { Database } from "~/utils/database";
 import { CheckToken } from "~/utils/auth";
 
 export default defineEventHandler(async (event: any) => {
-  const path = event.path;
+  const path = (event && (event as any).path) ? (event as any).path : "";
   
   // Skip authentication for public endpoints
   const publicEndpoints = ["/GetNotice", "/GetAddOnScript", "/GetImage"];
@@ -74,12 +74,14 @@ export default defineEventHandler(async (event: any) => {
       database: XMOJDatabase
     };
     
-    // Store request metadata
-    const e: any = event;
+    // Store request metadata with explicit guards
+    const ev: any = event;
+    const node = ev && ev.node ? ev.node : null;
     let remoteIP = "";
-    if (e && e.node && e.node.req && e.node.req.headers) {
-      const ip = e.node.req.headers["cf-connecting-ip"];
-      if (typeof ip === "string" && ip.length > 0) {
+    if (node && node.req && node.req.headers) {
+      const headers = node.req.headers;
+      const ip = typeof headers["cf-connecting-ip"] === "string" ? headers["cf-connecting-ip"] : "";
+      if (ip) {
         remoteIP = ip;
       }
     }

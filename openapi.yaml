@@ -2,12 +2,25 @@ openapi: 3.0.3
 info:
   title: XMOJ BBS API
   version: 0.1.0
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
 servers:
   - url: https://xmoj-bbs.tech
+security:
+  - sessionAuth: []
+components:
+  securitySchemes:
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PHPSESSID
 paths:
   /GetBoards:
     post:
+      operationId: getBoards
       summary: List boards
+      security: []
       requestBody:
         required: false
         content:
@@ -27,8 +40,11 @@ paths:
       responses:
         '200':
           description: Boards list
+        '400':
+          description: Invalid request
   /GetPosts:
     post:
+      operationId: getPosts
       summary: List posts
       requestBody:
         required: true
@@ -48,8 +64,10 @@ paths:
                     Limit: { type: integer, default: 15 }
       responses:
         '200': { description: Posts list }
+        '400': { description: Invalid request }
   /GetBBSMentionList:
     post:
+      operationId: getBBSMentionList
       summary: List mentions for current user
       requestBody:
         required: true
@@ -67,8 +85,10 @@ paths:
                     Offset: { type: integer, default: 0 }
       responses:
         '200': { description: Mentions list }
+        '400': { description: Invalid request }
   /DeletePost:
     post:
+      operationId: deletePost
       summary: Delete a post
       requestBody:
         required: true
@@ -85,8 +105,10 @@ paths:
                     PostID: { type: integer }
       responses:
         '200': { description: Delete status }
+        '400': { description: Invalid request }
   /DeleteReply:
     post:
+      operationId: deleteReply
       summary: Delete a reply
       requestBody:
         required: true
@@ -103,3 +125,4 @@ paths:
                     ReplyID: { type: integer }
       responses:
         '200': { description: Delete status }
+        '400': { description: Invalid request }
