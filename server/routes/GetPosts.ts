@@ -32,8 +32,8 @@ export default eventHandler(async (event) => {
   
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
   const PAGE_SIZE = clamp(Number.isFinite(Data.Limit) ? Data.Limit : 15, 1, 100);
-  let ResponseData = {
-    Posts: new Array<Object>,
+  let ResponseData: { Posts: any[]; PageCount: number } = {
+    Posts: [],
     PageCount: Data.BoardID !== -1 ? (Data.ProblemID !== 0 ? Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", {
       board_id: Data.BoardID,
       problem_id: Data.ProblemID
@@ -51,7 +51,7 @@ export default eventHandler(async (event) => {
     return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
   }
   
-  const SearchCondition = {};
+  const SearchCondition: Record<string, any> = {};
   if (Data.ProblemID !== 0) {
     SearchCondition["problem_id"] = Data.ProblemID;
   }

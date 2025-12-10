@@ -1,12 +1,10 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const eventHandler: any;
 import CryptoJS from "crypto-js";
 
 export default eventHandler(async (event) => {
   const { auth, cloudflare } = event.context;
-  const ResponseData = { MailList: new Array<Object>() };
+  const ResponseData: { MailList: any[] } = { MailList: [] };
   let OtherUsernameList: string[] = [];
   let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", ["message_from"], { message_to: auth.username }, {}, true));
   for (const mail of (Mails as any[])) OtherUsernameList.push(mail['message_from']);
@@ -39,6 +37,6 @@ export default eventHandler(async (event) => {
     const UnreadCount = ThrowErrorIfFailed(await auth.database.GetTableSize("short_message", { message_from: other, message_to: auth.username, is_read: 0 }));
     ResponseData.MailList.push({ OtherUser: other, LastsMessage: LastMessage[0]['content'], SendTime: LastMessage[0]['send_time'], UnreadCount: UnreadCount['TableSize'] });
   }
-  ResponseData.MailList.sort((a, b) => a['SendTime'] < b['SendTime'] ? 1 : -1);
+  ResponseData.MailList.sort((a: any, b: any) => a['SendTime'] < b['SendTime'] ? 1 : -1);
   return new Result(true, "获得短消息列表成功", ResponseData);
 });

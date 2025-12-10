@@ -9,7 +9,7 @@ export default eventHandler(async (event) => {
   const { auth, cloudflare } = event.context;
   
   ThrowErrorIfFailed(CheckParams(Data, { "OtherUser": "string" }));
-  const ResponseData = { Mail: new Array<Object>() };
+  const ResponseData: { Mail: any[] } = { Mail: [] };
   let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: Data.OtherUser, message_to: auth.username }, { Order: "send_time", OrderIncreasing: false }));
   for (const Mail of (Mails as any[])) {
     try {
@@ -56,7 +56,7 @@ export default eventHandler(async (event) => {
       IsRead: Mail['is_read']
     });
   }
-  ResponseData.Mail.sort((a, b) => a['SendTime'] < b['SendTime'] ? 1 : -1);
+  ResponseData.Mail.sort((a: any, b: any) => a['SendTime'] < b['SendTime'] ? 1 : -1);
   await auth.database.Update("short_message", { is_read: 1 }, { message_from: Data.OtherUser, message_to: auth.username });
   return new Result(true, "获得短消息成功", ResponseData);
 });

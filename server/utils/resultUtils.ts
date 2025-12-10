@@ -33,7 +33,7 @@ export class Result {
   }
 }
 
-export const ThrowErrorIfFailed = (CurrentResult: Result): Object => {
+export const ThrowErrorIfFailed = (CurrentResult: Result): any => {
   if (CurrentResult.Success === false) {
     throw CurrentResult;
   }

@@ -3,7 +3,7 @@
   "extends": [],
   "compilerOptions": {
       "strict": true,
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "skipLibCheck": true,
     "noEmit": true,
     "target": "esnext",
     "module": "NodeNext",
@@ -14,7 +14,7 @@
       "#nitro": [".nitro/types/index.d.ts"]
     },
     "lib": ["esnext", "dom"],
-    "types": []
+    "types": ["@cloudflare/workers-types"]
   },
   "include": [
     "server/**/*.ts",

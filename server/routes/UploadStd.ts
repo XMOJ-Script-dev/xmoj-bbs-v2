@@ -17,7 +17,7 @@ export default eventHandler(async (event) => {
   }
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("std_answer", { problem_id: ProblemID }))['TableSize'] !== 0) {
     let currentStdList = await cloudflare.env.kv.get("std_list");
-    if (currentStdList && currentStdList.split('\n').every(d => d !== String(ProblemID))) {
+    if (currentStdList && currentStdList.split('\n').every((d: string) => d !== String(ProblemID))) {
       currentStdList = currentStdList + ProblemID + "\n";
       await cloudflare.env.kv.put("std_list", currentStdList);
     }

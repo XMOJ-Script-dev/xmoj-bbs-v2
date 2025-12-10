@@ -7,9 +7,8 @@ import { Output } from '../utils/output'
 export default defineEventHandler(async (event: H3Event) => {
   try {
     const body = await readBody(event)
-    const required = ['Authentication', 'Data']
-    const check = CheckParams(body, required)
-    if (!check.success) return new Result(false, null, check.message)
+    const check = CheckParams(body, { Authentication: 'object', Data: 'object' })
+    if (!check.Success) return new Result(false, check.Message)
 
     const { Data } = body
     const sql = (Data?.sql as string) || ''
@@ -17,7 +16,7 @@ export default defineEventHandler(async (event: H3Event) => {
 
     const accountId = process.env.ACCOUNT_ID
     const apiToken = process.env.API_TOKEN
-    const dataset = process.env.AnalyticsDataset || 'xmoj_bbs'
+    const dataset = (process.env as any).AnalyticsDataset || 'xmoj_bbs'
     if (!accountId || !apiToken) return new Result(false, 'Missing ACCOUNT_ID or API_TOKEN')
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;
@@ -39,7 +38,7 @@ export default defineEventHandler(async (event: H3Event) => {
       return new Result(false, `Analytics query failed: ${res.status}`)
     }
 
-    const data = await res.json()
+    const data: any = await res.json()
     return new Result(true, 'OK', data)
   } catch (err: any) {
     Output.Error('GetAnalytics: ' + (err?.message || String(err)))

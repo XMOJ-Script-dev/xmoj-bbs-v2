@@ -1,28 +1,34 @@
 import { H3Event, readBody } from 'h3'
 import { Result } from '../utils/resultUtils'
 import { CheckParams } from '../utils/checkParams'
-import { Database } from '../utils/database'
 import { Output } from '../utils/output'
 
 // Returns the last online timestamp (unix seconds) for a user
 export default defineEventHandler(async (event: H3Event) => {
   try {
     const body = await readBody(event)
-    const required = ['Authentication', 'Data']
-    const check = CheckParams(body, required)
+    const check = CheckParams(body, { Authentication: 'object', Data: 'object' })
     if (!check.Success) return new Result(false, check.Message)
 
     const { Data } = body
     const username = Data?.username as string
     if (!username) return new Result(false, 'Missing username')
 
-    const db = new Database((event as any).context?.cloudflare?.env?.DB)
-    const rs = await db.prepare(
-      'SELECT timestamp FROM analytics_log WHERE username = ? ORDER BY timestamp DESC LIMIT 1'
-    ).bind(username).first()
+    // Use existing session records as a proxy for last online
+    const { auth } = (event as any).context
+    if (!auth?.database) return new Result(false, 'Auth context missing')
 
-    if (!rs || !rs.timestamp) return new Result(true, 'Not found', { lastOnline: 0 })
-    const tsUnix = Math.floor(Number(rs.timestamp) / 1000)
+    const rs = (await auth.database.Select(
+      'phpsessid',
+      ['create_time'],
+      { user_id: username },
+      { Order: 'create_time', OrderIncreasing: false, Limit: 1 }
+    )).Data as any
+
+    if (!rs || !Array.isArray(rs) || rs.length === 0) {
+      return new Result(true, 'Not found', { lastOnline: 0 })
+    }
+    const tsUnix = Math.floor(Number(rs[0]['create_time']) / 1000)
     return new Result(true, 'OK', { lastOnline: tsUnix })
   } catch (err: any) {
     Output.Error('LastOnline: ' + (err?.message || String(err)))

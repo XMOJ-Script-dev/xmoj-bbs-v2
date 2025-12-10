@@ -22,7 +22,7 @@ export async function VerifyCaptcha(
   CaptchaSecretKey: string | undefined,
   RemoteIP: string
 ): Promise<Result> {
-  const ErrorDescriptions: Object = {
+  const ErrorDescriptions: Record<string, string> = {
     "missing-input-secret": "密钥为空",
     "invalid-input-secret": "密钥不正确",
     "missing-input-response": "验证码令牌为空",
@@ -42,7 +42,7 @@ export async function VerifyCaptcha(
     return new Result(false, "验证码没有完成");
   }
   
-  const VerifyResult = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+  const VerifyResult: any = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
     body: JSON.stringify({
       secret: CaptchaSecretKey,
       response: CaptchaToken,

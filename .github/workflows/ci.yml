@@ -81,4 +81,4 @@ jobs:
           path: package-lock.json
       - name: JSON/YAML validation
         run: |
-          npx ajv-cli validate -s openapi.yaml
+          npx @apidevtools/swagger-cli validate openapi.yaml

@@ -26,8 +26,8 @@ const SESSION_EXPIRY_DAYS = 7; // Must match SESSION_EXPIRY_DAYS in auth.ts
 const SESSION_EXPIRY_MS = SESSION_EXPIRY_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
 const MESSAGE_RETENTION_DAYS = 5; // Keep read messages for 5 days
 
-export default defineNitroPlugin((nitroApp) => {
-  nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
+export default defineNitroPlugin((nitroApp: any) => {
+  nitroApp.hooks.hook('cloudflare:scheduled', async (event: any) => {
     const { env, context } = event;
     let XMOJDatabase = new Database(env.DB);
 
