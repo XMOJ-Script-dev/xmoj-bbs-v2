@@ -17,16 +17,25 @@
 
 import { Database } from "~/utils/database";
 
+// Time constants matching auth.ts
+const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const SESSION_EXPIRY_DAYS = 7; // Must match SESSION_EXPIRY_DAYS in auth.ts
+const SESSION_EXPIRY_MS = SESSION_EXPIRY_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+const MESSAGE_RETENTION_DAYS = 5; // Keep read messages for 5 days
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
     const { env, context } = event;
     let XMOJDatabase = new Database(env.DB);
-    
+
     context.waitUntil(new Promise<void>(async (Resolve) => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
+          "Value": new Date().getTime() - (MESSAGE_RETENTION_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND)
         },
         "is_read": {
           "Operator": "=",
@@ -36,7 +45,7 @@ export default defineNitroPlugin((nitroApp) => {
       await XMOJDatabase.Delete("phpsessid", {
         "create_time": {
           "Operator": "<=",
-          "Value": new Date().getTime() - 1000 * 60 * 60 * 24 * 5
+          "Value": new Date().getTime() - SESSION_EXPIRY_MS
         }
       });
       Resolve();

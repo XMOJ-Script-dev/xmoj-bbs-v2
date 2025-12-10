@@ -83,14 +83,19 @@ export async function CheckToken(
   // Short-term in-memory cache to reduce external calls
   // @ts-ignore
   const MAX_CACHE_ENTRIES = 1000;
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   const globalCache: Map<string, { u: string; t: number }> = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
+
+  // Fix race condition: check cache once and store result
   const cached = globalCache.get(SessionID);
   const nowTs = new Date().getTime();
-  if (cached && (nowTs - cached.t) >= (5 * 60 * 1000)) {
+  const isExpired = cached && (nowTs - cached.t) >= CACHE_TTL_MS;
+
+  if (isExpired) {
     // expired; remove to prevent growth
     globalCache.delete(SessionID);
-  }
-  if (cached && (nowTs - cached.t) < (5 * 60 * 1000)) {
+  } else if (cached) {
+    // Cache is valid, use it
     if (cached.u === Username) {
       Output.Log("Using cached session for user");
       const tableSizeResult = ThrowErrorIfFailed(
@@ -138,23 +143,23 @@ export async function CheckToken(
       return "";
     });
     
-  if (SessionUsername == "") {
+  if (SessionUsername === "") {
     Output.Debug("Check token failed: Session invalid\n" +
       "PHPSessionID: \"" + mask(SessionID) + "\"\n");
     return new Result(false, "令牌不合法");
   }
-  if (SessionUsername != Username) {
+  if (SessionUsername !== Username) {
     Output.Debug("Check token failed: Session and username not match \n" +
       "PHPSessionID   : \"" + mask(SessionID) + "\"\n" +
       "SessionUsername: \"" + SessionUsername + "\"\n" +
       "Username       : \"" + Username + "\"\n");
     return new Result(false, "令牌不匹配");
   }
-  
+
   const tableSizeObj = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", {
     token: HashedToken
   }));
-  if ((tableSizeObj as any)["TableSize"] == 0) {
+  if ((tableSizeObj as any)["TableSize"] === 0) {
     ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", {
       token: HashedToken,
       user_id: Username,
