@@ -79,6 +79,6 @@ jobs:
         with:
           name: refreshed-lockfile-lint
           path: package-lock.json
-      - name: JSON/YAML validation
+      - name: OpenAPI validation (Redocly)
         run: |
-          npx @apidevtools/swagger-cli validate openapi.yaml
+          npx @redocly/cli@latest lint openapi.yaml --max-problems=0

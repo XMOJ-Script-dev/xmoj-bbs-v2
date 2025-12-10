@@ -18,7 +18,7 @@ describe('GetBBSMentionList route', () => {
 
     const RawDatabase = {
       prepare: (sql: string) => ({
-        bind: (...args: any[]) => ({
+        bind: (..._args: any[]) => ({
           all: async () => {
             if (sql.startsWith('SELECT post_id')) {
               // posts IN query

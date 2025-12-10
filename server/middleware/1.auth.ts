@@ -75,10 +75,12 @@ export default defineEventHandler(async (event: any) => {
     };
     
     // Store request metadata
+    const node = (event as any) && (event as any).node;
+    const remoteIP = node && node.req && node.req.headers && node.req.headers["cf-connecting-ip"] ? node.req.headers["cf-connecting-ip"] : "";
     event.context.requestMeta = {
       version: Version || "unknown",
       debugMode: DebugMode || false,
-      remoteIP: (event as any)?.node?.req?.headers?.["cf-connecting-ip"] || ""
+      remoteIP
     };
     
     // Log to analytics if available
