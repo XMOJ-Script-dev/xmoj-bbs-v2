@@ -15,10 +15,7 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const defineEventHandler: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare function readBody(event: any): Promise<any>;
+import { defineEventHandler, readBody as h3ReadBody } from "h3";
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
 import { CheckToken } from "~/utils/auth";
@@ -27,8 +24,8 @@ export default defineEventHandler(async (event: any) => {
   const path = event.path;
   
   // Skip authentication for public endpoints
-  const publicEndpoints = ["/GetNotice", "/GetAddOnScript", "/GetImage", "/"];
-  if (publicEndpoints.some(endpoint => path.startsWith(endpoint))) {
+  const publicEndpoints = ["/GetNotice", "/GetAddOnScript", "/GetImage"];
+  if (path === "/" || publicEndpoints.some(endpoint => path.startsWith(endpoint))) {
     return;
   }
   // Basic rate-limit middleware runs before auth for POSTs
@@ -41,7 +38,8 @@ export default defineEventHandler(async (event: any) => {
   }
   
   try {
-    const body = await readBody(event);
+    const readBodyAny: (e: any) => Promise<any> = (globalThis as any).readBody || h3ReadBody as any;
+    const body = await readBodyAny(event);
     
     // Check if body has required authentication fields
     // Rate limiting is handled separately; proceed to auth
@@ -81,7 +79,7 @@ export default defineEventHandler(async (event: any) => {
     event.context.requestMeta = {
       version: Version || "unknown",
       debugMode: DebugMode || false,
-      remoteIP: event.node.req.headers["cf-connecting-ip"] || ""
+      remoteIP: (event as any)?.node?.req?.headers?.["cf-connecting-ip"] || ""
     };
     
     // Log to analytics if available
