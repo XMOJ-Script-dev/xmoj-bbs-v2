@@ -75,8 +75,14 @@ export default defineEventHandler(async (event: any) => {
     };
     
     // Store request metadata
-    const node = (event as any) && (event as any).node;
-    const remoteIP = node && node.req && node.req.headers && node.req.headers["cf-connecting-ip"] ? node.req.headers["cf-connecting-ip"] : "";
+    const e: any = event;
+    let remoteIP = "";
+    if (e && e.node && e.node.req && e.node.req.headers) {
+      const ip = e.node.req.headers["cf-connecting-ip"];
+      if (typeof ip === "string" && ip.length > 0) {
+        remoteIP = ip;
+      }
+    }
     event.context.requestMeta = {
       version: Version || "unknown",
       debugMode: DebugMode || false,
