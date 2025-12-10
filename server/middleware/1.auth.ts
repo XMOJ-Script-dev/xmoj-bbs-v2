@@ -75,8 +75,10 @@ export default defineEventHandler(async (event: any) => {
     };
     
     // Store request metadata with explicit guards
-    const ev: any = event;
-    const node = ev && ev.node ? ev.node : null;
+    let node: any = null;
+    if (event && typeof event === "object" && (event as any).node) {
+      node = (event as any).node;
+    }
     let remoteIP = "";
     if (node && node.req && node.req.headers) {
       const headers = node.req.headers;
