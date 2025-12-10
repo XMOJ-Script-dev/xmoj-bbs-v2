@@ -83,6 +83,48 @@ export class Database {
 
   // (intentionally no public raw query method; complex reads should be carefully reviewed)
 
+  /**
+   * Execute a complex read-only query with parameterized bindings.
+   * This is for queries that require JOINs, subqueries, or other complex operations
+   * that can't be expressed through the standard Select() method.
+   * IMPORTANT: Only use for SELECT queries. All parameters must be bound using ?.
+   * @param sql The SQL query string with ? placeholders
+   * @param bindParams Array of values to bind to the query
+   * @returns Result containing the query results
+   */
+  public async ExecuteComplexQuery(sql: string, bindParams: any[]): Promise<Result> {
+    // Validate that this is a read-only query
+    const trimmedSql = sql.trim().toUpperCase();
+    if (!trimmedSql.startsWith('SELECT')) {
+      return new Result(false, "ExecuteComplexQuery only supports SELECT queries");
+    }
+
+    // Validate that query doesn't contain dangerous operations
+    const dangerousPatterns = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE'];
+    for (const pattern of dangerousPatterns) {
+      if (trimmedSql.includes(pattern)) {
+        return new Result(false, "ExecuteComplexQuery detected potentially dangerous SQL operation");
+      }
+    }
+
+    Output.Debug("Executing complex SQL query: \n" +
+      "    Query    : \"" + sql + "\"\n" +
+      "    Arguments: " + JSON.stringify(bindParams) + "\n");
+
+    try {
+      const SQLResult = await this.RawDatabase.prepare(sql).bind(...bindParams).all();
+      Output.Debug("Complex SQL query returned with result: \n" +
+        "    Result: \"" + JSON.stringify(SQLResult) + "\"\n");
+      return new Result(true, "数据库查询成功", SQLResult);
+    } catch (ErrorDetail) {
+      Output.Warn("Error while executing complex SQL query: \n" +
+        "    Query    : \"" + sql + "\"\n" +
+        "    Arguments: " + JSON.stringify(bindParams) + "\n" +
+        "    Error    : \"" + ErrorDetail);
+      return new Result(false, "数据库查询失败，请稍后重试");
+    }
+  }
+
   public async Insert(Table: string, Data: object): Promise<Result> {
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");

@@ -80,7 +80,7 @@ export default eventHandler(async (event) => {
     ORDER BY p.post_id DESC
     LIMIT ? OFFSET ?
   `;
-  const selectRes = await (auth.database as any).RawDatabase.prepare(sql).bind(...bindParams, PAGE_SIZE, offset).all();
+  const selectRes = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(sql, [...bindParams, PAGE_SIZE, offset]));
   for (const row of selectRes.results) {
     // Do not mutate data during read; cleanup should be handled by scheduled tasks
     const LockData = {
