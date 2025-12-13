@@ -18,8 +18,12 @@
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { VerifyCaptcha } from "~/utils/captcha";
+<<<<<<< Updated upstream
 import { IsAdmin, IsSilenced } from "~/utils/auth";
 import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
+=======
+import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
+>>>>>>> Stashed changes
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);
@@ -46,11 +50,11 @@ export default eventHandler(async (event: any) => {
   if (Data.Content.trim() === "") {
     return new Result(false, "内容不能为空");
   }
-  if (!IsAdmin(auth.username) && (Data.BoardID == 0 || Data.BoardID == 5)) {
+    if (!(await IsAdminAsync(auth.username, auth.database)) && (Data.BoardID == 0 || Data.BoardID == 5)) {
     return new Result(false, "没有权限发表公告");
   }
-  if (IsSilenced(auth.username)) {
-    return new Result(false, "您已被禁言，无法发表讨论");
+  if (await IsSilencedAsync(auth.username, auth.database)) {
+    return new Result(false, "您已被禁言，无法创建讨论");
   }
   if (Data.BoardID !== 0) {
     const size = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_board", { board_id: Data.BoardID })) as { TableSize: number };

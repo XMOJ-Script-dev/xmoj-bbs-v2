@@ -31,7 +31,10 @@ export async function IfUserExist(Username: string, XMOJDatabase: Database): Pro
       "Exist": true
     });
   }
-  return await fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username))
+  {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username), { signal: controller.signal })
     .then((Response) => {
       return Response.text();
     }).then((Response) => {
@@ -42,10 +45,14 @@ export async function IfUserExist(Username: string, XMOJDatabase: Database): Pro
       Output.Error("Check user exist failed: " + Error + "\n" +
         "Username: \"" + Username + "\"\n");
       return new Result(false, "用户检查失败: " + Error);
-    });
+    }).finally(() => clearTimeout(timeout));
+    return res;
+  }
 }
 
 export async function GetProblemScore(ProblemID: number, Username: string, SessionID: string): Promise<number> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   return await fetch(new URL("https://www.xmoj.tech/status.php?user_id=" + Username + "&problem_id=" + ProblemID), {
     headers: {
       "Cookie": "PHPSESSID=" + SessionID,
@@ -58,7 +65,8 @@ export async function GetProblemScore(ProblemID: number, Username: string, Sessi
       "sec-fetch-mode": "cors",
       "sec-fetch-site": "same-origin"
     },
-    method: "GET"
+    method: "GET",
+    signal: controller.signal
   })
     .then((Response) => {
       return Response.text();
@@ -96,5 +104,5 @@ export async function GetProblemScore(ProblemID: number, Username: string, Sessi
         "Username : \"" + Username + "\"\n");
       ThrowErrorIfFailed(new Result(false, "获取题目分数失败"));
       return 0;
-    });
+    }).finally(() => clearTimeout(timeout));
 }

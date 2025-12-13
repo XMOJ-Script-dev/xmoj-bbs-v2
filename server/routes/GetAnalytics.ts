@@ -20,12 +20,15 @@ export default defineEventHandler(async (event: H3Event) => {
     if (!accountId || !apiToken) return new Result(false, 'Missing ACCOUNT_ID or API_TOKEN')
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiToken}`,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
       body: JSON.stringify({
         sql,
         dataset,
@@ -38,7 +41,12 @@ export default defineEventHandler(async (event: H3Event) => {
       return new Result(false, `Analytics query failed: ${res.status}`)
     }
 
+<<<<<<< Updated upstream
     const data: any = await res.json()
+=======
+    clearTimeout(timeout)
+    const data = await res.json()
+>>>>>>> Stashed changes
     return new Result(true, 'OK', data)
   } catch (err: any) {
     Output.Error('GetAnalytics: ' + (err?.message || String(err)))

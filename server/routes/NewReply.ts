@@ -18,8 +18,9 @@
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { VerifyCaptcha } from "~/utils/captcha";
-import { IsAdmin, IsSilenced } from "~/utils/auth";
+import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
+import { sanitizeRichText } from "~/utils/sanitize";
 import { IfUserExist } from "~/utils/xmoj";
 import { sanitizeRichText } from "~/utils/htmlSanitizer";
 
@@ -49,16 +50,22 @@ export default eventHandler(async (event: any) => {
     return new Result(false, "此讨论不允许回复");
   }
   
+<<<<<<< Updated upstream
   const lockSize = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID })) as { TableSize: number };
   if (lockSize.TableSize === 1 && !IsAdmin(auth.username)) {
+=======
+  if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", {
+    post_id: Data.PostID
+  }))["TableSize"] === 1 && !(await IsAdminAsync(auth.username, auth.database))) {
+>>>>>>> Stashed changes
     return new Result(false, "讨论已被锁定");
   }
   
-  if (IsSilenced(auth.username)) {
+  if (await IsSilencedAsync(auth.username, auth.database)) {
     return new Result(false, "您已被禁言，无法回复讨论");
   }
   
-  Data.Content = Data.Content.trim();
+  Data.Content = sanitizeRichText(Data.Content.trim());
   if (Data.Content === "") {
     return new Result(false, "内容不能为空");
   }
@@ -70,7 +77,7 @@ export default eventHandler(async (event: any) => {
     }
   }
   MentionPeople = Array.from(new Set(MentionPeople));
-  if (MentionPeople.length > 3 && !IsAdmin(auth.username)) {
+  if (MentionPeople.length > 3 && !(await IsAdminAsync(auth.username, auth.database))) {
     return new Result(false, "一次最多@3个人");
   }
   

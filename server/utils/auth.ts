@@ -20,6 +20,7 @@ import { Database } from "./database";
 import { Output } from "./output";
 // @ts-ignore
 import CryptoJS from "crypto-js";
+import Cheerio from "cheerio";
 
 // Time constants
 const MILLISECONDS_PER_SECOND = 1000;
@@ -33,6 +34,39 @@ const AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui
 const DenyMessageList: Array<string> = ["std"];
 const SilencedUser: Array<string> = ["zhaochenyi", "qianwenyu"];
 const DenyBadgeEditList: Array<string> = [];
+
+// Database-driven checks with safe fallback to legacy lists
+export async function IsAdminAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
+  try {
+    const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_admin", { user_id: Username }))['TableSize'];
+    if (size > 0) return true;
+  } catch {}
+  return AdminUserList.indexOf(Username) !== -1;
+}
+
+export async function IsSilencedAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
+  try {
+    const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_silenced", { user_id: Username }))['TableSize'];
+    if (size > 0) return true;
+  } catch {}
+  return SilencedUser.indexOf(Username) !== -1;
+}
+
+export async function DenyMessageAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
+  try {
+    const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_deny_message", { user_id: Username }))['TableSize'];
+    if (size > 0) return true;
+  } catch {}
+  return DenyMessageList.indexOf(Username) !== -1;
+}
+
+export async function DenyEditAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
+  try {
+    const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_deny_badge_edit", { user_id: Username }))['TableSize'];
+    if (size > 0) return true;
+  } catch {}
+  return DenyBadgeEditList.indexOf(Username) !== -1;
+}
 
 export async function CheckToken(
   SessionID: string,
@@ -109,6 +143,8 @@ export async function CheckToken(
     }
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   const SessionUsername: string = await fetch(new URL("https://www.xmoj.tech/template/bs3/profile.php"), {
     headers: {
       "Cookie": "PHPSESSID=" + SessionID,
@@ -121,11 +157,13 @@ export async function CheckToken(
       "sec-fetch-mode": "cors",
       "sec-fetch-site": "same-origin"
     },
-    method: "GET"
+    method: "GET",
+    signal: controller.signal
   })
     .then((Response) => {
       return Response.text();
     }).then((Response) => {
+<<<<<<< Updated upstream
       let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
       SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
       // LRU behavior: delete oldest if exceeding size limit
@@ -135,12 +173,29 @@ export async function CheckToken(
       }
       globalCache.set(SessionID, { u: SessionUsername, t: new Date().getTime() });
       return SessionUsername;
+=======
+      try {
+        const $ = Cheerio.load(Response);
+        // Attempt to find a link with user_id
+        let found = "";
+        $('a[href*="user_id="]').each((_, el) => {
+          if (found) return;
+          const href = $(el).attr('href') || '';
+          const m = href.match(/user_id=([a-zA-Z0-9_\-]+)/);
+          if (m && m[1]) found = m[1];
+        });
+        if (found) return found;
+      } catch {}
+      // Fallback: regex extract
+      const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
+      return m ? m[1] : "";
+>>>>>>> Stashed changes
     }).catch((Error) => {
       Output.Error("Check token failed: " + Error + "\n" +
         "PHPSessionID: \"" + mask(SessionID) + "\"\n" +
         "Username    : \"" + Username + "\"\n");
       return "";
-    });
+    }).finally(() => clearTimeout(timeout));
     
   if (SessionUsername === "") {
     Output.Debug("Check token failed: Session invalid\n" +

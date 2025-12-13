@@ -64,7 +64,10 @@ export default eventHandler(async (event) => {
   ResponseData.Title = Post[0]["title"];
   ResponseData.PostTime = Post[0]["post_time"];
   ResponseData.BoardID = Post[0]["board_id"];
-  ResponseData.BoardName = ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], { board_id: Post[0]["board_id"] }))[0]["board_name"];
+  {
+    const Board = ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], { board_id: Post[0]["board_id"] }));
+    ResponseData.BoardName = Board && Board.toString() !== "" ? Board[0]["board_name"] : "";
+  }
   
   const Locked = ThrowErrorIfFailed(await auth.database.Select("bbs_lock", [], {
     post_id: Data.PostID

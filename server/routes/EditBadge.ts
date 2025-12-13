@@ -2,21 +2,25 @@
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { IsAdmin, DenyEdit } from "~/utils/auth";
+<<<<<<< Updated upstream
 import { sanitizeTitle } from "~/utils/htmlSanitizer";
+=======
+import { IsAdminAsync, DenyEditAsync } from "~/utils/auth";
+>>>>>>> Stashed changes
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);
   const { Data } = body;
   const { auth, cloudflare } = event.context;
   ThrowErrorIfFailed(CheckParams(Data, { "UserID": "string", "BackgroundColor": "string", "Color": "string", "Content": "string" }));
-  if (!IsAdmin(auth.username) && Data.UserID !== auth.username) {
+  if (!(await IsAdminAsync(auth.username, auth.database)) && Data.UserID !== auth.username) {
     return new Result(false, "没有权限编辑此标签");
   }
   const size = ThrowErrorIfFailed(await auth.database.GetTableSize("badge", { user_id: Data.UserID })) as { TableSize: number };
   if (size.TableSize === 0) {
     return new Result(false, "编辑失败，该标签在数据库中不存在");
   }
-  if (DenyEdit(auth.username)) {
+  if (await DenyEditAsync(auth.username, auth.database)) {
     return new Result(false, "你被禁止修改标签");
   }
   if (Data.Content.length > 20) {

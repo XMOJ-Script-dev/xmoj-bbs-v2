@@ -29,7 +29,9 @@ export default eventHandler(async (event) => {
   let StdCode: string = "";
   let PageIndex: number = 0;
   while (StdCode === "") {
-    await fetch(new URL("https://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID } })
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    await fetch(new URL("https://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller.signal })
       .then((Response) => Response.text())
       .then(async (Response) => {
         if (Response.indexOf("[NEXT]") === -1) { StdCode = "这道题没有标程（即用户std没有AC这道题）"; return; }
@@ -42,30 +44,43 @@ export default eventHandler(async (event) => {
           if (SubmitRow.children().eq(2).text().trim() === "std") {
             let SID: string = SubmitRow.children().eq(1).text();
             if (SID.indexOf("(") != -1) SID = SID.substring(0, SID.indexOf("("));
-            await fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID } })
+            const controller2 = new AbortController();
+            const timeout2 = setTimeout(() => controller2.abort(), 10000);
+            await fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller2.signal })
               .then((Response) => Response.text())
               .then((Response) => {
                 Response = Response.substring(0, Response.indexOf("<!--not cached-->")).trim();
                 if (Response === "I am sorry, You could not view this code!") { Output.Error("Get Std code failed: Cannot view code"); ThrowErrorIfFailed(new Result(false, "获取标程失败")); }
                 Response = Response.substring(0, Response.indexOf("/**************************************************************")).trim();
                 StdCode = Response;
-              });
+              }).finally(() => clearTimeout(timeout2));
           }
         }
-      }).catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取标程失败")); });
+      }).catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取标程失败")); })
+      .finally(() => clearTimeout(timeout));
     PageIndex++;
   }
   if (StdCode === "这道题没有标程（即用户std没有AC这道题）") {
     StdCode = "";
     let SID: string = "0";
-    await fetch(new URL("https://www.xmoj.tech/status.php?problem_id=" + ProblemID + "&jresult=4"), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID } })
+    {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      await fetch(new URL("https://www.xmoj.tech/status.php?problem_id=" + ProblemID + "&jresult=4"), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller.signal })
       .then((response) => response.text())
       .then((body) => { const $ = load(body); SID = $(".oddrow > td:nth-child(2)").html() as string; })
-      .catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取SID失败")); });
-    await fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID } })
+      .catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取SID失败")); })
+      .finally(() => clearTimeout(timeout));
+    }
+    {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      await fetch(new URL("https://www.xmoj.tech/getsource.php?id=" + SID), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller.signal })
       .then((Response) => Response.text())
       .then((Response) => { StdCode = Response.substring(0, Response.indexOf("/**************************************************************")).trim(); })
-      .catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取标程失败")); });
+      .catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取标程失败")); })
+      .finally(() => clearTimeout(timeout));
+    }
     StdCode = '//Code by ' + auth.username + '\n' + StdCode;
   }
   ThrowErrorIfFailed(await auth.database.Insert("std_answer", { problem_id: ProblemID, std_code: StdCode }));

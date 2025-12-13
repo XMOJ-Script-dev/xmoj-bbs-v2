@@ -153,7 +153,11 @@ export class Database {
   }
 
   public async Select(Table: string, Data: string[], Condition?: object, Other?: object, Distinct?: boolean): Promise<Result> {
+<<<<<<< Updated upstream
     validateTableName(Table);
+=======
+    const allowedOperators = new Set(["=", "<>", "<", ">", "<=", ">=", "LIKE", "IN", "NOT IN"]);
+>>>>>>> Stashed changes
     let QueryString = "SELECT ";
     if (Distinct !== undefined && Distinct) {
       QueryString += "DISTINCT ";
@@ -176,7 +180,11 @@ export class Database {
         if (typeof Condition[i] != "object") {
           QueryString += "`" + i + "` = ? AND ";
         } else {
-          QueryString += "`" + i + "` " + Condition[i]["Operator"] + " ? AND ";
+          const op = String(Condition[i]["Operator"]).toUpperCase();
+          if (!allowedOperators.has(op)) {
+            return new Result(false, "非法的SQL操作符");
+          }
+          QueryString += "`" + i + "` " + op + " ? AND ";
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
@@ -213,6 +221,7 @@ export class Database {
   }
 
   public async Update(Table: string, Data: object, Condition?: object): Promise<Result> {
+    const allowedOperators = new Set(["=", "<>", "<", ">", "<=", ">=", "LIKE", "IN", "NOT IN"]);
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
@@ -230,7 +239,15 @@ export class Database {
         if (typeof Condition[key] != "object") {
           QueryString += "`" + key + "` = ? AND ";
         } else {
+<<<<<<< Updated upstream
           QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
+=======
+          const op = String(Condition[i]["Operator"]).toUpperCase();
+          if (!allowedOperators.has(op)) {
+            return new Result(false, "非法的SQL操作符");
+          }
+          QueryString += "`" + i + "` " + op + " ? AND ";
+>>>>>>> Stashed changes
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
@@ -253,7 +270,11 @@ export class Database {
   }
 
   public async GetTableSize(Table: string, Condition?: object): Promise<Result> {
+<<<<<<< Updated upstream
     validateTableName(Table);
+=======
+    const allowedOperators = new Set(["=", "<>", "<", ">", "<=", ">=", "LIKE", "IN", "NOT IN"]);
+>>>>>>> Stashed changes
     let QueryString = "SELECT COUNT(*) FROM `" + Table + "`";
     if (Condition !== undefined) {
       QueryString += " WHERE ";
@@ -262,7 +283,15 @@ export class Database {
         if (typeof Condition[key] != "object") {
           QueryString += "`" + key + "` = ? AND ";
         } else {
+<<<<<<< Updated upstream
           QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
+=======
+          const op = String(Condition[i]["Operator"]).toUpperCase();
+          if (!allowedOperators.has(op)) {
+            return new Result(false, "非法的SQL操作符");
+          }
+          QueryString += "`" + i + "` " + op + " ? AND ";
+>>>>>>> Stashed changes
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);
@@ -284,6 +313,7 @@ export class Database {
   }
 
   public async Delete(Table: string, Condition?: object): Promise<Result> {
+    const allowedOperators = new Set(["=", "<>", "<", ">", "<=", ">=", "LIKE", "IN", "NOT IN"]);
     if (readonly) {
       return new Result(false, "数据库只读模式，无法写入");
     }
@@ -296,7 +326,15 @@ export class Database {
         if (typeof Condition[key] != "object") {
           QueryString += "`" + key + "` = ? AND ";
         } else {
+<<<<<<< Updated upstream
           QueryString += "`" + key + "` " + Condition[key]["Operator"] + " ? AND ";
+=======
+          const op = String(Condition[i]["Operator"]).toUpperCase();
+          if (!allowedOperators.has(op)) {
+            return new Result(false, "非法的SQL操作符");
+          }
+          QueryString += "`" + i + "` " + op + " ? AND ";
+>>>>>>> Stashed changes
         }
       }
       QueryString = QueryString.substring(0, QueryString.length - 5);

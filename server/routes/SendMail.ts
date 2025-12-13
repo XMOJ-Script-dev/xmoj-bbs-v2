@@ -1,7 +1,12 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+<<<<<<< Updated upstream
 import { CheckParams } from "~/utils/checkParams";
 import { DenyMessage, IsSilenced, IsAdmin } from "~/utils/auth";
+=======
+import { CheckParams } from "~/utils/checkPrams";
+import { DenyMessageAsync, IsSilencedAsync, IsAdminAsync } from "~/utils/auth";
+>>>>>>> Stashed changes
 import { AddMailMention } from "~/utils/mentions";
 import CryptoJS from "crypto-js";
 import { IfUserExist } from "~/utils/xmoj";
@@ -12,7 +17,7 @@ export default eventHandler(async (event) => {
   const { auth, cloudflare } = event.context;
   
   ThrowErrorIfFailed(CheckParams(Data, { "ToUser": "string", "Content": "string" }));
-  if (DenyMessage(Data.ToUser)) {
+  if (await DenyMessageAsync(Data.ToUser, auth.database)) {
     return new Result(false, "该用户已关闭短消息接收");
   }
   if (Data.Content.startsWith("您好，我是") && ThrowErrorIfFailed(await IfUserExist(Data.ToUser, auth.database))['Exist'] === false) {
@@ -24,8 +29,8 @@ export default eventHandler(async (event) => {
   if (Data.Content.length > 2000) {
     return new Result(false, "短消息过长");
   }
-  if (!IsAdmin(Data.ToUser) && IsSilenced(auth.username)) {
-    return new Result(false, "你已被禁言, 无法向非管理员发送短消息");
+  if (!(await IsAdminAsync(Data.ToUser, auth.database)) && (await IsSilencedAsync(auth.username, auth.database))) {
+    return new Result(false, "你已被禁言，无法向非管理员发送短消息");
   }
   const encryptedContent = "Begin xssmseetee v2 encrypted message" + CryptoJS.AES.encrypt(Data.Content, cloudflare.env.xssmseetee_v1_key + auth.username + Data.ToUser).toString();
   const MessageID = ThrowErrorIfFailed(await auth.database.Insert("short_message", {

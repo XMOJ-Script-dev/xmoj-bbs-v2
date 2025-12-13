@@ -1,8 +1,13 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+<<<<<<< Updated upstream
 import { CheckParams } from "~/utils/checkParams";
 import { IsAdmin } from "~/utils/auth";
 import { DeletePostWithReplies } from "~/utils/postUtils";
+=======
+import { CheckParams } from "~/utils/checkPrams";
+import { IsAdminAsync } from "~/utils/auth";
+>>>>>>> Stashed changes
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
@@ -14,10 +19,10 @@ export default eventHandler(async (event) => {
   if (Post.toString() === "") {
     return new Result(false, "删除失败，该讨论不存在");
   }
-  if (!IsAdmin(auth.username) && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID }))['TableSize'] === 1) {
+  if (!(await IsAdminAsync(auth.username, auth.database)) && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID }))['TableSize'] === 1) {
     return new Result(false, "讨论已被锁定");
   }
-  if (!IsAdmin(auth.username) && Post[0]['user_id'] !== auth.username) {
+  if (!(await IsAdminAsync(auth.username, auth.database)) && Post[0]['user_id'] !== auth.username) {
     return new Result(false, "没有权限删除此讨论");
   }
   

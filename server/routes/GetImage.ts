@@ -16,12 +16,15 @@ export default defineEventHandler(async (event: H3Event) => {
     if (!targetPath) return new Result(false, 'Missing id or path')
 
     const url = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/main/${encodeURIComponent(targetPath)}`
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${pat}` }, signal: controller.signal })
     if (!res.ok) {
       const t = await res.text()
       Output.Error('GetImage: ' + t)
       return new Result(false, `GitHub fetch failed: ${res.status}`)
     }
+    clearTimeout(timeout)
     const contentType = res.headers.get('content-type') || 'application/octet-stream'
     const arrayBuf = await res.arrayBuffer()
     return new Response(new Uint8Array(arrayBuf), {
