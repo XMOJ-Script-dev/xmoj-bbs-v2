@@ -20,7 +20,8 @@ import { Database } from "./database";
 import { Output } from "./output";
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import * as Cheerio from "cheerio";
+// Use named Cheerio export compatible with Node tests and browser builds
+import { load as cheerioLoad } from "cheerio";
 
 // Time constants
 const MILLISECONDS_PER_SECOND = 1000;
@@ -164,7 +165,7 @@ export async function CheckToken(
       return Response.text();
     }).then((Response) => {
       try {
-        const $ = Cheerio.load(Response);
+        const $ = cheerioLoad(Response);
         // Attempt to find a link with user_id
         let found = "";
         $('a[href*="user_id="]').each((_, el) => {
