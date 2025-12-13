@@ -1,12 +1,8 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkParams";
-import { IsAdmin, DenyEdit } from "~/utils/auth";
-<<<<<<< Updated upstream
-import { sanitizeTitle } from "~/utils/htmlSanitizer";
-=======
+import { CheckParams } from "~/utils/checkPrams";
 import { IsAdminAsync, DenyEditAsync } from "~/utils/auth";
->>>>>>> Stashed changes
+import { sanitizeTitle } from "~/utils/htmlSanitizer";
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);

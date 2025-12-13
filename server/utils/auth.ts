@@ -163,17 +163,6 @@ export async function CheckToken(
     .then((Response) => {
       return Response.text();
     }).then((Response) => {
-<<<<<<< Updated upstream
-      let SessionUsername = Response.substring(Response.indexOf("user_id=") + 8);
-      SessionUsername = SessionUsername.substring(0, SessionUsername.indexOf("'"));
-      // LRU behavior: delete oldest if exceeding size limit
-      if (globalCache.size >= MAX_CACHE_ENTRIES) {
-        const oldestKey = globalCache.keys().next().value;
-        if (oldestKey) globalCache.delete(oldestKey);
-      }
-      globalCache.set(SessionID, { u: SessionUsername, t: new Date().getTime() });
-      return SessionUsername;
-=======
       try {
         const $ = Cheerio.load(Response);
         // Attempt to find a link with user_id
@@ -189,7 +178,6 @@ export async function CheckToken(
       // Fallback: regex extract
       const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
       return m ? m[1] : "";
->>>>>>> Stashed changes
     }).catch((Error) => {
       Output.Error("Check token failed: " + Error + "\n" +
         "PHPSessionID: \"" + mask(SessionID) + "\"\n" +

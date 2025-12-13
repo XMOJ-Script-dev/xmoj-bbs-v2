@@ -16,14 +16,10 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkParams";
+import { CheckParams } from "~/utils/checkPrams";
 import { VerifyCaptcha } from "~/utils/captcha";
-<<<<<<< Updated upstream
-import { IsAdmin, IsSilenced } from "~/utils/auth";
-import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
-=======
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
->>>>>>> Stashed changes
+import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);

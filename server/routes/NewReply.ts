@@ -16,13 +16,13 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkParams";
+import { CheckParams } from "~/utils/checkPrams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { sanitizeRichText } from "~/utils/sanitize";
 import { IfUserExist } from "~/utils/xmoj";
-import { sanitizeRichText } from "~/utils/htmlSanitizer";
+// remove duplicate import from htmlSanitizer; using sanitize from utils/sanitize
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);
@@ -50,14 +50,9 @@ export default eventHandler(async (event: any) => {
     return new Result(false, "此讨论不允许回复");
   }
   
-<<<<<<< Updated upstream
-  const lockSize = ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID })) as { TableSize: number };
-  if (lockSize.TableSize === 1 && !IsAdmin(auth.username)) {
-=======
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", {
     post_id: Data.PostID
   }))["TableSize"] === 1 && !(await IsAdminAsync(auth.username, auth.database))) {
->>>>>>> Stashed changes
     return new Result(false, "讨论已被锁定");
   }
   

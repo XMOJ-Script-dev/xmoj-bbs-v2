@@ -89,32 +89,16 @@ export default eventHandler(async (event) => {
       LockTime: row.lock_time || 0
     };
     ResponseData.Posts.push({
-<<<<<<< Updated upstream
       PostID: row.post_id,
       UserID: row.user_id,
       ProblemID: row.problem_id,
       Title: row.title,
       PostTime: row.post_time,
       BoardID: row.board_id,
-      BoardName: row.board_name,
-      ReplyCount: row.reply_count,
-      LastReplyUserID: row.last_reply_user_id,
-      LastReplyTime: row.last_reply_time,
-=======
-      PostID: Post["post_id"],
-      UserID: Post["user_id"],
-      ProblemID: Post["problem_id"],
-      Title: Post["title"],
-      PostTime: Post["post_time"],
-      BoardID: Post["board_id"],
-      BoardName: (() => {
-        const Board = ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], { board_id: Post["board_id"] }));
-        return Board && Board.toString() !== "" ? Board[0]["board_name"] : "";
-      })(),
-      ReplyCount: ReplyCount,
-      LastReplyUserID: LastReply && LastReply.toString() !== "" ? LastReply[0]["user_id"] : "",
-      LastReplyTime: LastReply && LastReply.toString() !== "" ? LastReply[0]["reply_time"] : 0,
->>>>>>> Stashed changes
+      BoardName: row.board_name || "",
+      ReplyCount: row.reply_count || 0,
+      LastReplyUserID: row.last_reply_user_id || "",
+      LastReplyTime: row.last_reply_time || 0,
       Lock: LockData
     });
   }

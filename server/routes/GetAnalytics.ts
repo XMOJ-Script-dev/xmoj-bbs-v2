@@ -41,12 +41,9 @@ export default defineEventHandler(async (event: H3Event) => {
       return new Result(false, `Analytics query failed: ${res.status}`)
     }
 
-<<<<<<< Updated upstream
-    const data: any = await res.json()
-=======
     clearTimeout(timeout)
     const data = await res.json()
->>>>>>> Stashed changes
+  const data = await res.json()
     return new Result(true, 'OK', data)
   } catch (err: any) {
     Output.Error('GetAnalytics: ' + (err?.message || String(err)))

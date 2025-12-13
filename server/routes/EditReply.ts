@@ -1,12 +1,7 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-<<<<<<< Updated upstream
-import { CheckParams } from "~/utils/checkParams";
-import { IsAdmin, IsSilenced } from "~/utils/auth";
-=======
 import { CheckParams } from "~/utils/checkPrams";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
->>>>>>> Stashed changes
 import { AddBBSMention } from "~/utils/mentions";
 import { sanitizeRichText } from "~/utils/sanitize";
 import { IfUserExist } from "~/utils/xmoj";

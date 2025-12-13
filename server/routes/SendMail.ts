@@ -1,12 +1,7 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-<<<<<<< Updated upstream
-import { CheckParams } from "~/utils/checkParams";
-import { DenyMessage, IsSilenced, IsAdmin } from "~/utils/auth";
-=======
 import { CheckParams } from "~/utils/checkPrams";
 import { DenyMessageAsync, IsSilencedAsync, IsAdminAsync } from "~/utils/auth";
->>>>>>> Stashed changes
 import { AddMailMention } from "~/utils/mentions";
 import CryptoJS from "crypto-js";
 import { IfUserExist } from "~/utils/xmoj";
