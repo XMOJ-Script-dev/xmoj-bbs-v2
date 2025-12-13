@@ -94,16 +94,20 @@ export default defineEventHandler(async (event: any) => {
     };
     
     // Log to analytics if available
-    if (cloudflare.env.logdb) {
-      cloudflare.env.logdb.writeDataPoint({
-        'blobs': [
-          event.context.requestMeta.remoteIP,
-          path,
-          event.context.requestMeta.version,
-          event.context.requestMeta.debugMode
-        ],
-        'indexes': [Authentication.Username]
-      });
+    try {
+      if (cloudflare.env.logdb && typeof cloudflare.env.logdb.writeDataPoint === "function") {
+        cloudflare.env.logdb.writeDataPoint({
+          'blobs': [
+            event.context.requestMeta.remoteIP,
+            path,
+            event.context.requestMeta.version,
+            event.context.requestMeta.debugMode
+          ],
+          'indexes': [Authentication.Username]
+        });
+      }
+    } catch (e) {
+      // Ignore analytics logging errors
     }
     
   } catch (error) {

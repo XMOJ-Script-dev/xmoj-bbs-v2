@@ -43,7 +43,8 @@ export default eventHandler(async (event: any) => {
   // Strip any HTML and enforce byte limit on final content
   const sanitizedContent = sanitizeTitle(Data.Content, 64);
   const check = await cloudflare.env.AI.run("@cf/huggingface/distilbert-sst-2-int8", { text: sanitizedContent });
-    if (check[check[0]["label"] == "NEGATIVE" ? 0 : 1]["score"] > 0.90) {
+  const negative = Array.isArray(check) ? check.find((item: any) => item.label === "NEGATIVE") : null;
+  if (negative && negative.score > 0.90) {
     return new Result(false, "您设置的标签内容含有负面词汇，请修改后重试");
   }
   ThrowErrorIfFailed(await auth.database.Update("badge", { background_color: Data.BackgroundColor, color: Data.Color, content: sanitizedContent }, { user_id: Data.UserID }));

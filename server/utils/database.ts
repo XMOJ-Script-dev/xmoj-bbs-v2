@@ -25,7 +25,7 @@ let readonly = false; // set to true to allow maintenance
 // Whitelist of allowed tables and columns to prevent SQL injection
 const ALLOWED_TABLES = [
   'bbs_post', 'bbs_reply', 'bbs_board', 'bbs_mention', 'bbs_lock',
-  'badge', 'phpsessid', 'mail', 'image', 'std', 'short_message'
+  'badge', 'phpsessid', 'mail', 'image', 'std', 'std_answer', 'short_message'
 ];
 
 const ALLOWED_COLUMNS: Record<string, string[]> = {
@@ -38,8 +38,8 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'phpsessid': ['token', 'user_id', 'create_time'],
   'mail': ['mail_id', 'from_user_id', 'to_user_id', 'title', 'content', 'send_time', 'read'],
   'image': ['image_id', 'user_id', 'path', 'upload_time'],
-  'std': ['std_id', 'user_id', 'problem_id', 'content', 'upload_time']
-  ,
+  'std': ['std_id', 'user_id', 'problem_id', 'content', 'upload_time'],
+  'std_answer': ['problem_id', 'std_code'],
   'short_message': ['message_id','message_from','message_to','content','send_time','is_read']
 };
 
