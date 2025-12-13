@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { sanitizeRichText } from "~/utils/sanitize";

@@ -1,6 +1,6 @@
 /* Copyright header omitted */
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { DenyMessageAsync, IsSilencedAsync, IsAdminAsync } from "~/utils/auth";
 import { AddMailMention } from "~/utils/mentions";
 import CryptoJS from "crypto-js";

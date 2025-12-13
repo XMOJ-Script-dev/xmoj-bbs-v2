@@ -16,7 +16,7 @@
  */
 
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
-import { CheckParams } from "~/utils/checkPrams";
+import { CheckParams } from "~/utils/checkParams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
