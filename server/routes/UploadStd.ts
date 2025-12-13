@@ -13,7 +13,7 @@ export default eventHandler(async (event) => {
   ThrowErrorIfFailed(CheckParams(Data, { "ProblemID": "number" }));
   const ProblemID = Data.ProblemID;
   if (ProblemID === 0) {
-    return new Result(false, "ProblemID不能为0");
+    return new Result(true, "ProblemID不能为0, 已忽略");
   }
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("std_answer", { problem_id: ProblemID }))['TableSize'] !== 0) {
     let currentStdList = await cloudflare.env.kv.get("std_list");
