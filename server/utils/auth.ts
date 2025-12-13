@@ -20,7 +20,7 @@ import { Database } from "./database";
 import { Output } from "./output";
 // @ts-ignore
 import CryptoJS from "crypto-js";
-import Cheerio from "cheerio";
+import * as Cheerio from "cheerio";
 
 // Time constants
 const MILLISECONDS_PER_SECOND = 1000;
