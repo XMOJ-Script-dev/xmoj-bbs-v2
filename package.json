@@ -10,19 +10,19 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240903.0",
     "@types/node": "^22.5.4",
-    "nitropack": "latest",
-    "vitest": "^1.6.1",
-    "eslint": "^9.39.1",
-    "@typescript-eslint/parser": "^8.48.1",
     "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "ajv-cli": "^5.0.0",
+    "eslint": "^9.39.1",
+    "nitropack": "latest",
     "typescript": "^5.9.3",
-    "ajv-cli": "^5.0.0"
+    "vitest": "^1.6.1"
   },
   "dependencies": {
     "cheerio": "^1.1.2",
     "crypto-js": "^4.2.0",
     "h3": "^1.12.0",
-    "sqlstring": "^2.3.3",
-    "sanitize-html": "^2.13.0"
+    "sanitize-html": "^2.13.0",
+    "sqlstring": "^2.3.3"
   }
 }
