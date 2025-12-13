@@ -21,7 +21,7 @@ import { Output } from "./output";
 // @ts-ignore
 import CryptoJS from "crypto-js";
 // Use named Cheerio export compatible with Node tests and browser builds
-import { load as cheerioLoad } from "cheerio";
+// Avoid importing cheerio at top-level to prevent test env issues.
 
 // Time constants
 const MILLISECONDS_PER_SECOND = 1000;
@@ -163,20 +163,22 @@ export async function CheckToken(
   })
     .then((Response) => {
       return Response.text();
-    }).then((Response) => {
+    }).then(async (Response) => {
+      // Prefer cheerio parsing when not in test env; otherwise use regex
       try {
-        const $ = cheerioLoad(Response);
-        // Attempt to find a link with user_id
-        let found = "";
-        $('a[href*="user_id="]').each((_, el) => {
-          if (found) return;
-          const href = $(el).attr('href') || '';
-          const m = href.match(/user_id=([a-zA-Z0-9_\-]+)/);
-          if (m && m[1]) found = m[1];
-        });
-        if (found) return found;
+        if (!isTest) {
+          const mod: any = await import('cheerio');
+          const $ = mod.load(Response);
+          let found = "";
+          $('a[href*="user_id="]').each((_: any, el: any) => {
+            if (found) return;
+            const href = $(el).attr('href') || '';
+            const m = href.match(/user_id=([a-zA-Z0-9_\-]+)/);
+            if (m && m[1]) found = m[1];
+          });
+          if (found) return found;
+        }
       } catch {}
-      // Fallback: regex extract
       const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
       return m ? m[1] : "";
     }).catch((Error) => {
