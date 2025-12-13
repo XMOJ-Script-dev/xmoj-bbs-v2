@@ -116,7 +116,7 @@ export async function CheckToken(
   }
   // Short-term in-memory cache to reduce external calls
   // @ts-ignore
-  const MAX_CACHE_ENTRIES = 1000;
+  const _MAX_CACHE_ENTRIES = 1000; // Reserved for future cache size limiting
   const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   const globalCache: Map<string, { u: string; t: number }> = (globalThis as any).__tokenCache || ((globalThis as any).__tokenCache = new Map<string, { u: string, t: number }>());
 
