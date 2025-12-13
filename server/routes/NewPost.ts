@@ -19,7 +19,8 @@ import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkPrams";
 import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
-import { sanitizeTitle, sanitizeRichText } from "~/utils/htmlSanitizer";
+import { sanitizeTitle } from "~/utils/htmlSanitizer";
+import { sanitizeRichText } from "~/utils/sanitize";
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);

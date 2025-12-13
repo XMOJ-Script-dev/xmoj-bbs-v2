@@ -43,7 +43,6 @@ export default defineEventHandler(async (event: H3Event) => {
 
     clearTimeout(timeout)
     const data = await res.json()
-  const data = await res.json()
     return new Result(true, 'OK', data)
   } catch (err: any) {
     Output.Error('GetAnalytics: ' + (err?.message || String(err)))
