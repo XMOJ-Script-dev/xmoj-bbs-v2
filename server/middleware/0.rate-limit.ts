@@ -33,15 +33,13 @@ export default defineEventHandler(async (event: any) => {
   // Fallback: global in-memory token bucket without timers; cleaned on access
   const globalBuckets: Map<string, { tokens: number; last: number }> = (globalThis as any).__rlBuckets || ((globalThis as any).__rlBuckets = new Map());
   const TTL_MS = 5 * 60 * 1000;
-  // Cleanup stale entries opportunistically
-  const firstKey = globalBuckets.keys().next().value;
-  if (firstKey) {
-    const now2 = now;
-    for (const [k, v] of globalBuckets.entries()) {
-      if (now2 - v.last > TTL_MS) globalBuckets.delete(k);
-    }
+  // Opportunistically clean up only the accessed key if stale
+  let st = globalBuckets.get(key);
+  if (st && (now - st.last > TTL_MS)) {
+    globalBuckets.delete(key);
+    st = undefined;
   }
-  const st = globalBuckets.get(key) || { tokens: CAPACITY, last: now };
+  st = st || { tokens: CAPACITY, last: now };
   const elapsed = (now - st.last) / 1000;
   st.tokens = Math.min(CAPACITY, st.tokens + elapsed * REFILL_PER_SEC);
   st.last = now;
