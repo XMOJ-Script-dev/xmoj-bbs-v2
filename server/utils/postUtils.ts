@@ -20,6 +20,11 @@ import { Database } from "./database";
 
 /**
  * Shared utility to delete a post and all its replies
+ * Note: D1 doesn't support traditional transactions. We use sequential deletes
+ * which is acceptable because:
+ * 1. Orphaned replies/locks are cleaned up by scheduled tasks
+ * 2. The database constraints prevent data corruption
+ * 3. Failed operations are caught and reported
  */
 export async function DeletePostWithReplies(
   postId: number,

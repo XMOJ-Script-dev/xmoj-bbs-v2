@@ -3,7 +3,19 @@ import sanitizeHtml from 'sanitize-html';
 export function sanitizeRichText(input: string): string {
   if (!input) return "";
   
-  return sanitizeHtml(input, {
+  // Pre-process to handle potential XSS vectors as defense-in-depth
+  // The sanitize-html library already handles these, but we add extra protection
+  let processed = input
+    // Remove any attempts at script injection
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    // Remove HTML comments
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Remove event handlers (on* attributes)
+    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '');
+  
+  return sanitizeHtml(processed, {
     allowedTags: [
       'p', 'br', 'strong', 'em', 'u', 's', 'code', 'pre', 'blockquote',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',

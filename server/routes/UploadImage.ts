@@ -54,7 +54,7 @@ export default defineEventHandler(async (event: any) => {
     }
 
     const id = crypto.randomUUID()
-    const targetPath = `images/${id}${filename ? '_' + filename : ''}`
+    const targetPath = `images/${id}${safeName ? '_' + safeName : ''}`
 
     const content = base64.replace(/^data:[^;]+;base64,/, '')
     // Approximate decoded byte length

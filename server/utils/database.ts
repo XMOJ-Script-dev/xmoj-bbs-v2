@@ -203,10 +203,18 @@ export class Database {
         QueryString += " ORDER BY `" + Other["Order"] + "` " + (Other["OrderIncreasing"] ? "ASC" : "DESC");
       }
       if (Other["Limit"] !== undefined) {
-        QueryString += " LIMIT " + Other["Limit"];
+        const limit = Number(Other["Limit"]);
+        if (!Number.isInteger(limit) || limit < 0) {
+          return new Result(false, "LIMIT必须是非负整数");
+        }
+        QueryString += " LIMIT " + limit;
       }
       if (Other["Offset"] !== undefined) {
-        QueryString += " OFFSET " + Other["Offset"];
+        const offset = Number(Other["Offset"]);
+        if (!Number.isInteger(offset) || offset < 0) {
+          return new Result(false, "OFFSET必须是非负整数");
+        }
+        QueryString += " OFFSET " + offset;
       }
     }
     QueryString += ";";
