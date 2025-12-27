@@ -19,7 +19,10 @@ describe('GetAnalytics route', () => {
 
   it('returns OK with data', async () => {
     const handler = (await import('../server/routes/GetAnalytics.ts')).default as any
-    const res = await handler({} as any)
+    const mockDatabase = {
+      GetTableSize: vi.fn().mockResolvedValue({ Success: true, Data: { TableSize: 1 }, Message: 'OK' })
+    }
+    const res = await handler({ context: { auth: { username: 'admin', database: mockDatabase } } } as any)
     expect(res.Success).toBe(true)
     expect((res.Data as any).rows?.length).toBe(1)
   })
@@ -27,7 +30,10 @@ describe('GetAnalytics route', () => {
   it('handles failure from API', async () => {
     ;(globalThis as any).fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'err' })
     const handler = (await import('../server/routes/GetAnalytics.ts')).default as any
-    const res = await handler({} as any)
+    const mockDatabase = {
+      GetTableSize: vi.fn().mockResolvedValue({ Success: true, Data: { TableSize: 1 }, Message: 'OK' })
+    }
+    const res = await handler({ context: { auth: { username: 'admin', database: mockDatabase } } } as any)
     expect(res.Success).toBe(false)
   })
 })
