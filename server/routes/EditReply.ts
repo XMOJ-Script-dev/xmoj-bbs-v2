@@ -5,15 +5,23 @@ import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { AddBBSMention } from "~/utils/mentions";
 import { sanitizeRichText } from "~/utils/sanitize";
 import { IfUserExist } from "~/utils/xmoj";
+import { VerifyCaptcha } from "~/utils/captcha";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
   const { Data } = body;
-  const { auth } = event.context;
+  const { auth, requestMeta, cloudflare } = event.context;
   
-  ThrowErrorIfFailed(CheckParams(Data, { "ReplyID": "number", "Content": "string" }));
+  ThrowErrorIfFailed(CheckParams(Data, { "ReplyID": "number", "Content": { type: "string", maxLength: 50000 }, "CaptchaSecretKey": "string" }));
+  
+  ThrowErrorIfFailed(await VerifyCaptcha(
+    Data.CaptchaSecretKey,
+    cloudflare.env.CaptchaSecretKey,
+    requestMeta.remoteIP
+  ));
+  
   const Reply = ThrowErrorIfFailed(await auth.database.Select("bbs_reply", ["post_id", "user_id"], { reply_id: Data.ReplyID }));
-  if (Reply.toString() === "") {
+  if (!Array.isArray(Reply) || Reply.length === 0) {
     return new Result(false, "编辑失败，未找到此回复");
   }
   if (!(await IsAdminAsync(auth.username, auth.database)) && Reply[0]['user_id'] !== auth.username) {

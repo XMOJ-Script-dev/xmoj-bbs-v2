@@ -3,15 +3,23 @@ import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { IsAdminAsync } from "~/utils/auth";
 import { DeletePostWithReplies } from "~/utils/postUtils";
+import { VerifyCaptcha } from "~/utils/captcha";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
   const { Data } = body;
-  const { auth } = event.context;
+  const { auth, requestMeta, cloudflare } = event.context;
   
-  ThrowErrorIfFailed(CheckParams(Data, { "PostID": "number" }));
+  ThrowErrorIfFailed(CheckParams(Data, { "PostID": "number", "CaptchaSecretKey": "string" }));
+  
+  ThrowErrorIfFailed(await VerifyCaptcha(
+    Data.CaptchaSecretKey,
+    cloudflare.env.CaptchaSecretKey,
+    requestMeta.remoteIP
+  ));
+  
   const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", ["user_id"], { post_id: Data.PostID }));
-  if (Post.toString() === "") {
+  if (!Array.isArray(Post) || Post.length === 0) {
     return new Result(false, "删除失败，该讨论不存在");
   }
   if (!(await IsAdminAsync(auth.username, auth.database)) && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Data.PostID }))['TableSize'] === 1) {

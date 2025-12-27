@@ -39,12 +39,13 @@ export async function AddBBSMention(
       reply_id: ReplyID
     }));
   } else {
+    // Update existing mention - remove reply_id from WHERE to handle multiple mentions per post
     ThrowErrorIfFailed(await XMOJDatabase.Update("bbs_mention", {
-      bbs_mention_time: new Date().getTime()
+      bbs_mention_time: new Date().getTime(),
+      reply_id: ReplyID
     }, {
       to_user_id: ToUserID,
-      post_id: PostID,
-      reply_id: ReplyID
+      post_id: PostID
     }));
   }
 }

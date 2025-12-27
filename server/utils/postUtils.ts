@@ -30,6 +30,8 @@ export async function DeletePostWithReplies(
     ThrowErrorIfFailed(await database.Delete("bbs_reply", { post_id: postId }));
     ThrowErrorIfFailed(await database.Delete("bbs_post", { post_id: postId }));
     ThrowErrorIfFailed(await database.Delete("bbs_lock", { post_id: postId }));
+    // Clean up mentions to prevent orphaned data
+    ThrowErrorIfFailed(await database.Delete("bbs_mention", { post_id: postId }));
     return new Result(true, "删除讨论成功");
   } catch (_error) {
     return new Result(false, "删除讨论失败，请稍后重试");

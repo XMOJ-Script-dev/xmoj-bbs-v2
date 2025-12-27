@@ -21,6 +21,7 @@ import { VerifyCaptcha } from "~/utils/captcha";
 import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
 import { sanitizeTitle } from "~/utils/htmlSanitizer";
 import { sanitizeRichText } from "~/utils/sanitize";
+import { Output } from "~/utils/output";
 
 export default eventHandler(async (event: any) => {
   const body = await readBody(event);
@@ -29,8 +30,8 @@ export default eventHandler(async (event: any) => {
   
   ThrowErrorIfFailed(CheckParams(Data, {
     "ProblemID": "number",
-    "Title": "string",
-    "Content": "string",
+    "Title": { type: "string", maxLength: 256 },
+    "Content": { type: "string", maxLength: 50000 },
     "CaptchaSecretKey": "string",
     "BoardID": "number"
   }));
@@ -78,13 +79,23 @@ export default eventHandler(async (event: any) => {
       reply_time: new Date().getTime()
     });
     if (!replyInsertResult.Success) {
-      // Cleanup orphaned post
-      await auth.database.Delete("bbs_post", { post_id: PostID });
+      // Cleanup orphaned post - wrap in try-catch to preserve original error
+      try {
+        await auth.database.Delete("bbs_post", { post_id: PostID });
+      } catch (cleanupError) {
+        // Log cleanup failure but don't mask the original error
+        Output.Error(`Failed to cleanup orphaned post ${PostID}: ${cleanupError}`);
+      }
       return new Result(false, "创建讨论失败，请稍后重试");
     }
   } catch (error) {
-    // Cleanup orphaned post on error
-    await auth.database.Delete("bbs_post", { post_id: PostID });
+    // Cleanup orphaned post on error - wrap in try-catch to preserve original error
+    try {
+      await auth.database.Delete("bbs_post", { post_id: PostID });
+    } catch (cleanupError) {
+      // Log cleanup failure but don't mask the original error
+      Output.Error(`Failed to cleanup orphaned post ${PostID}: ${cleanupError}`);
+    }
     throw error;
   }
   

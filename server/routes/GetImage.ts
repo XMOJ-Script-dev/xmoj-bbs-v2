@@ -12,6 +12,15 @@ export default defineEventHandler(async (event: H3Event) => {
     const pat = process.env.GithubImagePAT
     if (!pat) return new Result(false, 'Missing GithubImagePAT')
 
+    // Validate path doesn't contain traversal sequences
+    if (path && (path.includes('..') || path.includes('//') || !path.startsWith('images/'))) {
+      return new Result(false, 'Invalid path')
+    }
+    // Validate id is UUID format
+    if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return new Result(false, 'Invalid id')
+    }
+
     const targetPath = path || (id ? `images/${id}` : null)
     if (!targetPath) return new Result(false, 'Missing id or path')
 

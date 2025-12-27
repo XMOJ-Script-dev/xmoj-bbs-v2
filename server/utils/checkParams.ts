@@ -17,7 +17,7 @@
 
 import { Result } from "~/utils/resultUtils";
 
-type TypeSpec = string | { type: string; min?: number; max?: number; enum?: any[] };
+type TypeSpec = string | { type: string; min?: number; max?: number; enum?: any[]; maxLength?: number };
 
 export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): Result => {
   for (const key of Object.keys(Data as any)) {
@@ -40,6 +40,9 @@ export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): 
       }
       if (spec.max !== undefined && typeof actual === 'number' && actual > spec.max) {
         return new Result(false, "参数" + key + "大于最大值" + spec.max);
+      }
+      if (spec.maxLength !== undefined && typeof actual === 'string' && actual.length > spec.maxLength) {
+        return new Result(false, "参数" + key + "长度超过最大值" + spec.maxLength);
       }
       if (spec.enum && !spec.enum.includes(actual)) {
         return new Result(false, "参数" + key + "不在允许范围内");

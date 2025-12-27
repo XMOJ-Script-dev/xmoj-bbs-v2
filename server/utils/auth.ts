@@ -201,17 +201,20 @@ export async function CheckToken(
     return new Result(false, "令牌不匹配");
   }
 
-  const tableSizeObj = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", {
-    token: HashedToken
-  }));
-  if ((tableSizeObj as any)["TableSize"] === 0) {
-    ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", {
+  // Use try-catch to handle race condition where another request might insert the same token
+  try {
+    await XMOJDatabase.Insert("phpsessid", {
       token: HashedToken,
       user_id: Username,
       create_time: new Date().getTime()
-    }));
-  } else {
-    Output.Log("token already exists, skipping insert");
+    });
+  } catch (error) {
+    // If duplicate key error, token already exists - this is fine
+    // For other errors, log but continue since token verification already passed
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (!errMsg.includes('UNIQUE') && !errMsg.includes('duplicate')) {
+      Output.Error("Token insert error (continuing): " + errMsg);
+    }
   }
   Output.Log("Record session: " + mask(SessionID) + " for " + Username);
   return new Result(true, "令牌匹配");

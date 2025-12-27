@@ -31,7 +31,7 @@ export default eventHandler(async (event: any) => {
   
   ThrowErrorIfFailed(CheckParams(Data, {
     "PostID": "number",
-    "Content": "string",
+    "Content": { type: "string", maxLength: 50000 },
     "CaptchaSecretKey": "string"
   }));
   
@@ -42,7 +42,7 @@ export default eventHandler(async (event: any) => {
   ));
   
   const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", ["title", "user_id", "board_id"], { post_id: Data.PostID })) as any[];
-  if (Post.toString() == "") {
+  if (!Array.isArray(Post) || Post.length === 0) {
     return new Result(false, "该讨论不存在");
   }
   

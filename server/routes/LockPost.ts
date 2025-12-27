@@ -7,13 +7,20 @@
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { IsAdminAsync } from "~/utils/auth";
+import { VerifyCaptcha } from "~/utils/captcha";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
   const { Data } = body;
-  const { auth } = event.context;
+  const { auth, requestMeta, cloudflare } = event.context;
   
-  ThrowErrorIfFailed(CheckParams(Data, { "PostID": "number" }));
+  ThrowErrorIfFailed(CheckParams(Data, { "PostID": "number", "CaptchaSecretKey": "string" }));
+  
+  ThrowErrorIfFailed(await VerifyCaptcha(
+    Data.CaptchaSecretKey,
+    cloudflare.env.CaptchaSecretKey,
+    requestMeta.remoteIP
+  ));
   
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", { post_id: Data.PostID }))['TableSize'] === 0) {
     return new Result(false, "该讨论不存在");

@@ -2,6 +2,7 @@ import { H3Event, readBody } from 'h3'
 import { Result } from '../utils/resultUtils'
 import { CheckParams } from '../utils/checkParams'
 import { Output } from '../utils/output'
+import { IsAdminAsync } from '../utils/auth'
 
 // Executes a query against Cloudflare Analytics Engine
 export default defineEventHandler(async (event: H3Event) => {
@@ -9,6 +10,12 @@ export default defineEventHandler(async (event: H3Event) => {
     const body = await readBody(event)
     const check = CheckParams(body, { Authentication: 'object', Data: 'object' })
     if (!check.Success) return new Result(false, check.Message)
+
+    const { auth } = event.context
+    // Only admins can execute analytics queries
+    if (!(await IsAdminAsync(auth.username, auth.database))) {
+      return new Result(false, "权限不足")
+    }
 
     const { Data } = body
     const sql = (Data?.sql as string) || ''

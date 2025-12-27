@@ -24,9 +24,10 @@ import { Output } from "~/utils/output";
 export default defineEventHandler(async (event: any) => {
   const path = (event && (event as any).path) ? (event as any).path : "";
   
-  // Skip authentication for public endpoints
-  const publicEndpoints = ["/GetNotice", "/GetAddOnScript", "/GetImage"];
-  if (path === "/" || publicEndpoints.some(endpoint => path.startsWith(endpoint))) {
+  // Skip authentication for public endpoints - use exact matching to prevent bypass
+  const publicPaths = new Set(["/", "/GetNotice", "/GetAddOnScript", "/GetImage"]);
+  const normalizedPath = path.replace(/\/$/, '');
+  if (publicPaths.has(normalizedPath) || publicPaths.has(path)) {
     return;
   }
   // Basic rate-limit middleware runs before auth for POSTs

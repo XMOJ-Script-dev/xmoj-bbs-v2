@@ -47,7 +47,7 @@ export default eventHandler(async (event) => {
   const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", [], {
     post_id: Data.PostID
   }));
-  if (Post.toString() == "") {
+  if (!Array.isArray(Post) || Post.length === 0) {
     return new Result(false, "该讨论不存在");
   }
   
@@ -67,13 +67,13 @@ export default eventHandler(async (event) => {
   }
   {
     const Board = ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], { board_id: Post[0]["board_id"] }));
-    ResponseData.BoardName = Board && Board.toString() !== "" ? Board[0]["board_name"] : "";
+    ResponseData.BoardName = (Array.isArray(Board) && Board.length > 0) ? Board[0]["board_name"] : "";
   }
   
   const Locked = ThrowErrorIfFailed(await auth.database.Select("bbs_lock", [], {
     post_id: Data.PostID
   }));
-  if (Locked.toString() !== "") {
+  if (Array.isArray(Locked) && Locked.length > 0) {
     ResponseData.Lock.Locked = true;
     ResponseData.Lock.LockPerson = Locked[0]["lock_person"];
     ResponseData.Lock.LockTime = Locked[0]["lock_time"];
