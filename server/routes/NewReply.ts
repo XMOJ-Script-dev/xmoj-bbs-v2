@@ -38,7 +38,8 @@ export default eventHandler(async (event: any) => {
   ThrowErrorIfFailed(await VerifyCaptcha(
     Data.CaptchaSecretKey,
     cloudflare.env.CaptchaSecretKey,
-    requestMeta.remoteIP
+    requestMeta.remoteIP,
+    cloudflare.env.CAPTCHA_KV
   ));
   
   const Post = ThrowErrorIfFailed(await auth.database.Select("bbs_post", ["title", "user_id", "board_id"], { post_id: Data.PostID })) as any[];

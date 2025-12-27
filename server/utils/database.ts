@@ -105,13 +105,33 @@ export class Database {
       return new Result(false, "ExecuteComplexQuery only supports SELECT queries");
     }
 
+    // Remove comments and string literals before pattern matching to prevent bypasses
+    let cleanedSql = trimmedSql;
+    // Remove single-line comments (-- ...)
+    cleanedSql = cleanedSql.replace(/--[^\n]*\n/g, ' ');
+    // Remove multi-line comments (/* ... */)
+    cleanedSql = cleanedSql.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    // Remove single-quoted string literals
+    cleanedSql = cleanedSql.replace(/'[^']*'/g, ' ');
+    // Remove double-quoted identifiers/strings
+    cleanedSql = cleanedSql.replace(/"[^"]*"/g, ' ');
+
     // Validate that query doesn't contain dangerous operations
-    const dangerousPatterns = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE'];
+    const dangerousPatterns = [
+      'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE',
+      'ATTACH', 'DETACH', 'PRAGMA', 'REPLACE', 'MERGE', 'EXEC', 'EXECUTE'
+    ];
     for (const pattern of dangerousPatterns) {
-      if (trimmedSql.includes(pattern)) {
+      // Use word boundaries to match whole words only
+      const regex = new RegExp('\\b' + pattern + '\\b', 'i');
+      if (regex.test(cleanedSql)) {
+        Output.Warn("ExecuteComplexQuery blocked dangerous pattern: " + pattern + " in query: " + sql.substring(0, 100));
         return new Result(false, "ExecuteComplexQuery detected potentially dangerous SQL operation");
       }
     }
+
+    // Log all ExecuteComplexQuery usage for audit purposes
+    Output.Log("ExecuteComplexQuery called: " + sql.substring(0, 100) + "...");
 
     Output.Debug("Executing complex SQL query: \n" +
       "    Query    : \"" + sql + "\"\n" +

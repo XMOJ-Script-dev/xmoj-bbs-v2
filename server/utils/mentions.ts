@@ -17,6 +17,7 @@
 
 import { ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
+import { Output } from "~/utils/output";
 
 export async function AddBBSMention(
   ToUserID: string,
@@ -28,25 +29,34 @@ export async function AddBBSMention(
   if (ToUserID === FromUserID) {
     return;
   }
-  if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_mention", {
-    to_user_id: ToUserID,
-    post_id: PostID
-  }))["TableSize"] === 0) {
-    ThrowErrorIfFailed(await XMOJDatabase.Insert("bbs_mention", {
+  // Use INSERT OR REPLACE pattern to handle race conditions atomically
+  try {
+    await XMOJDatabase.Insert("bbs_mention", {
       to_user_id: ToUserID,
       post_id: PostID,
       bbs_mention_time: new Date().getTime(),
       reply_id: ReplyID
-    }));
-  } else {
-    // Update existing mention - remove reply_id from WHERE to handle multiple mentions per post
-    ThrowErrorIfFailed(await XMOJDatabase.Update("bbs_mention", {
-      bbs_mention_time: new Date().getTime(),
-      reply_id: ReplyID
-    }, {
-      to_user_id: ToUserID,
-      post_id: PostID
-    }));
+    });
+  } catch (error) {
+    // If insert fails due to unique constraint, update existing record
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.includes('UNIQUE') || errMsg.includes('duplicate')) {
+      try {
+        await XMOJDatabase.Update("bbs_mention", {
+          bbs_mention_time: new Date().getTime(),
+          reply_id: ReplyID
+        }, {
+          to_user_id: ToUserID,
+          post_id: PostID
+        });
+      } catch (updateError) {
+        // Log but don't fail on update errors
+        Output.Error("Failed to update BBS mention: " + (updateError instanceof Error ? updateError.message : String(updateError)));
+      }
+    } else {
+      // Re-throw non-constraint errors
+      throw error;
+    }
   }
 }
 
@@ -55,21 +65,31 @@ export async function AddMailMention(
   ToUserID: string,
   XMOJDatabase: Database
 ): Promise<void> {
-  if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("short_message_mention", {
-    from_user_id: FromUserID,
-    to_user_id: ToUserID
-  }))["TableSize"] === 0) {
-    ThrowErrorIfFailed(await XMOJDatabase.Insert("short_message_mention", {
+  // Use INSERT OR REPLACE pattern to handle race conditions atomically
+  try {
+    await XMOJDatabase.Insert("short_message_mention", {
       from_user_id: FromUserID,
       to_user_id: ToUserID,
       mail_mention_time: new Date().getTime()
-    }));
-  } else {
-    ThrowErrorIfFailed(await XMOJDatabase.Update("short_message_mention", {
-      mail_mention_time: new Date().getTime()
-    }, {
-      from_user_id: FromUserID,
-      to_user_id: ToUserID
-    }));
+    });
+  } catch (error) {
+    // If insert fails due to unique constraint, update existing record
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.includes('UNIQUE') || errMsg.includes('duplicate')) {
+      try {
+        await XMOJDatabase.Update("short_message_mention", {
+          mail_mention_time: new Date().getTime()
+        }, {
+          from_user_id: FromUserID,
+          to_user_id: ToUserID
+        });
+      } catch (updateError) {
+        // Log but don't fail on update errors
+        Output.Error("Failed to update mail mention: " + (updateError instanceof Error ? updateError.message : String(updateError)));
+      }
+    } else {
+      // Re-throw non-constraint errors
+      throw error;
+    }
   }
 }

@@ -6,13 +6,23 @@ import { Output } from '../utils/output'
 export default defineEventHandler(async (event: H3Event) => {
   try {
     const id = getQuery(event)?.id as string | undefined
-    const path = getQuery(event)?.path as string | undefined
+    const pathRaw = getQuery(event)?.path as string | undefined
     const repoOwner = process.env.GithubImageOwner || 'XMOJ-Script-dev'
     const repoName = process.env.GithubImageRepo || 'xmoj-bbs-images'
     const pat = process.env.GithubImagePAT
     if (!pat) return new Result(false, 'Missing GithubImagePAT')
 
-    // Validate path doesn't contain traversal sequences
+    let path = pathRaw;
+    // Decode path first, then validate to prevent %2e%2e bypasses
+    if (path) {
+      try {
+        path = decodeURIComponent(path);
+      } catch (e) {
+        return new Result(false, 'Invalid path encoding');
+      }
+    }
+
+    // Validate path doesn't contain traversal sequences AFTER decoding
     if (path && (path.includes('..') || path.includes('//') || !path.startsWith('images/'))) {
       return new Result(false, 'Invalid path')
     }

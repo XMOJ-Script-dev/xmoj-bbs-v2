@@ -19,7 +19,8 @@ export default eventHandler(async (event) => {
   ThrowErrorIfFailed(await VerifyCaptcha(
     Data.CaptchaSecretKey,
     cloudflare.env.CaptchaSecretKey,
-    requestMeta.remoteIP
+    requestMeta.remoteIP,
+    cloudflare.env.CAPTCHA_KV
   ));
   
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", { post_id: Data.PostID }))['TableSize'] === 0) {

@@ -32,12 +32,12 @@ export function sanitizeRichText(input: string): string {
       'code': ['class'],
       'pre': ['class']
     },
-    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemes: ['https', 'mailto'],
     allowedSchemesByTag: {
-      'img': ['http', 'https', 'data']
+      'img': ['https']
     },
     allowedClasses: {
-      'code': ['language-*', 'hljs'],
+      'code': ['language-javascript', 'language-python', 'language-cpp', 'language-c', 'language-java', 'hljs'],
       'pre': ['hljs'],
       'div': ['code-block'],
       'span': ['mention']

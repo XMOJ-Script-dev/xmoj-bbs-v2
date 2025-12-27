@@ -20,13 +20,41 @@ import { Database } from "./database";
 import { Output } from "./output";
 import { load, type CheerioAPI } from "cheerio";
 
+import { Result, ThrowErrorIfFailed } from "./resultUtils";
+import { Database } from "./database";
+import { Output } from "./output";
+import { load, type CheerioAPI } from "cheerio";
+
+// Cache for user existence checks (5 minute TTL)
+const USER_CACHE_TTL_MS = 5 * 60 * 1000;
+const userExistCache: Map<string, { exist: boolean; timestamp: number }> = new Map();
+
 export async function IfUserExist(Username: string, XMOJDatabase: Database): Promise<Result> {
   if (Username !== Username.toLowerCase()) {
     return new Result(false, "用户名必须为小写");
   }
+  
+  // Check cache first
+  const cached = userExistCache.get(Username);
+  const now = new Date().getTime();
+  if (cached && (now - cached.timestamp) < USER_CACHE_TTL_MS) {
+    return new Result(true, "用户检查成功", { "Exist": cached.exist });
+  }
+  
+  // Clean up expired cache entries opportunistically
+  if (userExistCache.size > 1000) {
+    for (const [key, value] of userExistCache.entries()) {
+      if ((now - value.timestamp) >= USER_CACHE_TTL_MS) {
+        userExistCache.delete(key);
+      }
+    }
+  }
+  
   if (ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("phpsessid", {
     user_id: Username
   }))["TableSize"] > 0) {
+    // Cache positive result
+    userExistCache.set(Username, { exist: true, timestamp: now });
     return new Result(true, "用户检查成功", {
       "Exist": true
     });
@@ -38,8 +66,11 @@ export async function IfUserExist(Username: string, XMOJDatabase: Database): Pro
     .then((Response) => {
       return Response.text();
     }).then((Response) => {
+      const exist = Response.indexOf("No such User!") === -1;
+      // Cache result
+      userExistCache.set(Username, { exist, timestamp: now });
       return new Result(true, "用户检查成功", {
-        "Exist": Response.indexOf("No such User!") === -1
+        "Exist": exist
       });
     }).catch((Error) => {
       Output.Error("Check user exist failed: " + Error + "\n" +

@@ -2,8 +2,8 @@
 declare const defineEventHandler: any;
 declare function readBody(event: any): Promise<any>;
 
-const CAPACITY = 30; // max 30 ops
-const REFILL_PER_SEC = 10; // 10 tokens per second
+const CAPACITY = 10; // max 10 ops (reduced from 30)
+const REFILL_PER_SEC = 2; // 2 tokens per second (reduced from 10)
 // Use KV for distributed rate limiting when available
 type KVBinding = { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: any) => Promise<void> };
 
@@ -14,7 +14,12 @@ export default defineEventHandler(async (event: any) => {
     const body = await readBody(event);
     username = body?.Authentication?.Username || '';
   } catch {}
-  const key = username || event.node?.req?.headers?.['cf-connecting-ip'] || 'anonymous';
+  // For anonymous users, require IP address (don't fall back to 'anonymous' shared bucket)
+  const ip = event.node?.req?.headers?.['cf-connecting-ip'];
+  if (!username && !ip) {
+    return { Success: false, Message: '无法确定请求来源，请求被拒绝' };
+  }
+  const key = username || ip || 'anonymous';
   const now = Date.now();
   const kv: KVBinding | undefined = event.context?.cloudflare?.env?.RATE_LIMIT_KV;
   if (kv) {

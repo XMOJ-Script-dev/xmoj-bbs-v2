@@ -24,10 +24,24 @@ import { Output } from "~/utils/output";
 export default defineEventHandler(async (event: any) => {
   const path = (event && (event as any).path) ? (event as any).path : "";
   
-  // Skip authentication for public endpoints - use exact matching to prevent bypass
-  const publicPaths = new Set(["/", "/GetNotice", "/GetAddOnScript", "/GetImage"]);
-  const normalizedPath = path.replace(/\/$/, '');
-  if (publicPaths.has(normalizedPath) || publicPaths.has(path)) {
+  // Skip authentication for public endpoints with proper normalization
+  const publicPaths = new Set(["/", "/getnotice", "/getaddonscript", "/getimage"]);
+  // Normalize: decode URI components, remove query strings, convert to lowercase, remove trailing slashes
+  let normalizedPath = path;
+  try {
+    // Remove query string first
+    const pathWithoutQuery = normalizedPath.split('?')[0].split('#')[0];
+    // Decode URI to prevent %2F and other encoded bypasses
+    normalizedPath = decodeURIComponent(pathWithoutQuery);
+    // Convert to lowercase for case-insensitive comparison
+    normalizedPath = normalizedPath.toLowerCase();
+    // Remove trailing slashes
+    normalizedPath = normalizedPath.replace(/\/+$/, '') || '/';
+  } catch (e) {
+    // If decoding fails, treat as non-public path (safer default)
+    normalizedPath = path;
+  }
+  if (publicPaths.has(normalizedPath)) {
     return;
   }
   // Basic rate-limit middleware runs before auth for POSTs
@@ -60,13 +74,28 @@ export default defineEventHandler(async (event: any) => {
     const { cloudflare } = event.context;
     const XMOJDatabase = new Database(cloudflare.env.DB);
     
+    // Collect request metadata for session binding
+    let remoteIP = "";
+    let userAgent = "";
+    let node: any = null;
+    if (event && typeof event === "object" && (event as any).node) {
+      node = (event as any).node;
+    }
+    if (node && node.req && node.req.headers) {
+      const headers = node.req.headers;
+      remoteIP = typeof headers["cf-connecting-ip"] === "string" ? headers["cf-connecting-ip"] : "";
+      userAgent = typeof headers["user-agent"] === "string" ? headers["user-agent"] : "";
+    }
+    
     // Check token - fail immediately if invalid
     ThrowErrorIfFailed(await CheckToken(
       Authentication.SessionID,
       Authentication.Username,
       XMOJDatabase,
       // Pass KV if available for distributed cache
-      (cloudflare.env as any).SESSION_KV
+      (cloudflare.env as any).SESSION_KV,
+      // Pass request metadata for session binding
+      { ip: remoteIP, userAgent }
     ));
     
     // Store authenticated user info in context
@@ -77,22 +106,11 @@ export default defineEventHandler(async (event: any) => {
     };
     
     // Store request metadata with explicit guards
-    let node: any = null;
-    if (event && typeof event === "object" && (event as any).node) {
-      node = (event as any).node;
-    }
-    let remoteIP = "";
-    if (node && node.req && node.req.headers) {
-      const headers = node.req.headers;
-      const ip = typeof headers["cf-connecting-ip"] === "string" ? headers["cf-connecting-ip"] : "";
-      if (ip) {
-        remoteIP = ip;
-      }
-    }
     event.context.requestMeta = {
       version: Version || "unknown",
       debugMode: DebugMode || false,
-      remoteIP
+      remoteIP,
+      userAgent
     };
     
     // Log to analytics if available

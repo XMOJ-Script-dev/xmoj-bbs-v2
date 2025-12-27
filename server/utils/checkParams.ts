@@ -17,7 +17,7 @@
 
 import { Result } from "~/utils/resultUtils";
 
-type TypeSpec = string | { type: string; min?: number; max?: number; enum?: any[]; maxLength?: number };
+type TypeSpec = string | { type: string; min?: number; max?: number; enum?: any[]; maxLength?: number; minLength?: number; maxBytes?: number };
 
 export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): Result => {
   for (const key of Object.keys(Data as any)) {
@@ -31,6 +31,12 @@ export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): 
       return new Result(false, "参数类型" + expectedType + "未知");
     }
     const actual = (Data as any)[key];
+    
+    // Add null/undefined check
+    if (actual === null || actual === undefined) {
+      return new Result(false, "参数" + key + "不能为空");
+    }
+    
     if (typeof actual !== expectedType) {
       return new Result(false, "参数" + key + "期望类型" + expectedType + "实际类型" + typeof actual);
     }
@@ -41,8 +47,19 @@ export const CheckParams = (Data: object, Checklist: Record<string, TypeSpec>): 
       if (spec.max !== undefined && typeof actual === 'number' && actual > spec.max) {
         return new Result(false, "参数" + key + "大于最大值" + spec.max);
       }
+      // Add minLength support
+      if (spec.minLength !== undefined && typeof actual === 'string' && actual.length < spec.minLength) {
+        return new Result(false, "参数" + key + "长度小于最小值" + spec.minLength);
+      }
       if (spec.maxLength !== undefined && typeof actual === 'string' && actual.length > spec.maxLength) {
         return new Result(false, "参数" + key + "长度超过最大值" + spec.maxLength);
+      }
+      // Add byte length check (UTF-8 byte count)
+      if (spec.maxBytes !== undefined && typeof actual === 'string') {
+        const byteLength = new TextEncoder().encode(actual).length;
+        if (byteLength > spec.maxBytes) {
+          return new Result(false, "参数" + key + "字节长度超过最大值" + spec.maxBytes);
+        }
       }
       if (spec.enum && !spec.enum.includes(actual)) {
         return new Result(false, "参数" + key + "不在允许范围内");

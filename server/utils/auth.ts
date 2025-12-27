@@ -74,7 +74,9 @@ export async function CheckToken(
   Username: string,
   XMOJDatabase: Database,
   // Optional KV for distributed cache
-  KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: any) => Promise<void> }
+  KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, options?: any) => Promise<void> },
+  // Optional request metadata for session binding
+  requestMeta?: { ip?: string; userAgent?: string }
 ): Promise<Result> {
   const isTest = typeof process !== 'undefined' && !!(process as any).env &&
     (Boolean((process as any).env.VITEST_WORKER_ID) || Boolean((process as any).env.VITEST));
@@ -90,6 +92,12 @@ export async function CheckToken(
   if (!isTest && (CurrentSessionData as any[]).toString() !== "") {
     if ((CurrentSessionData as any[])[0]["user_id"] === Username &&
       (CurrentSessionData as any[])[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
+      // Session valid - update last access time for session rotation
+      try {
+        await XMOJDatabase.Update("phpsessid", { create_time: new Date().getTime() }, { token: HashedToken });
+      } catch (e) {
+        // Ignore update errors, session is still valid
+      }
       return new Result(true, "令牌匹配");
     } else {
       ThrowErrorIfFailed(await XMOJDatabase.Delete("phpsessid", { token: HashedToken }));
@@ -216,6 +224,17 @@ export async function CheckToken(
       Output.Error("Token insert error (continuing): " + errMsg);
     }
   }
+  
+  // Update caches after successful verification
+  globalCache.set(SessionID, { u: Username, t: nowTs });
+  if (KV) {
+    try {
+      await KV.put(`sess:${SessionID}`, Username, { expirationTtl: SESSION_EXPIRY_MS / 1000 });
+    } catch (e) {
+      // Ignore KV errors
+    }
+  }
+  
   Output.Log("Record session: " + mask(SessionID) + " for " + Username);
   return new Result(true, "令牌匹配");
 }

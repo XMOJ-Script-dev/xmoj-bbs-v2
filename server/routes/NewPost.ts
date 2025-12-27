@@ -39,7 +39,8 @@ export default eventHandler(async (event: any) => {
   ThrowErrorIfFailed(await VerifyCaptcha(
     Data.CaptchaSecretKey,
     cloudflare.env.CaptchaSecretKey,
-    requestMeta.remoteIP
+    requestMeta.remoteIP,
+    cloudflare.env.CAPTCHA_KV
   ));
   
   if (Data.Title.trim() === "") {
