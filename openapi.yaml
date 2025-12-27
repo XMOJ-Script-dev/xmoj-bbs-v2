@@ -103,6 +103,8 @@ paths:
                   type: object
                   properties:
                     PostID: { type: integer }
+                  required:
+                    - PostID
       responses:
         '200': { description: Delete status }
         '400': { description: Invalid request }
@@ -123,6 +125,8 @@ paths:
                   type: object
                   properties:
                     ReplyID: { type: integer }
+                  required:
+                    - ReplyID
       responses:
         '200': { description: Delete status }
         '400': { description: Invalid request }

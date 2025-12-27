@@ -15,7 +15,8 @@ export default eventHandler(async (event) => {
   if (await DenyMessageAsync(Data.ToUser, auth.database)) {
     return new Result(false, "该用户已关闭短消息接收");
   }
-  if (Data.Content.startsWith("您好，我是") && ThrowErrorIfFailed(await IfUserExist(Data.ToUser, auth.database))['Exist'] === false) {
+  // Validate user exists for all messages, not just specific content
+  if (ThrowErrorIfFailed(await IfUserExist(Data.ToUser, auth.database))['Exist'] === false) {
     return new Result(false, "未找到用户");
   }
   if (Data.ToUser === auth.username) {

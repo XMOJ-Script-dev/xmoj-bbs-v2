@@ -14,10 +14,11 @@ export default eventHandler(async (event) => {
   if (Reply.toString() === "") {
     return new Result(false, "删除失败，该回复不存在");
   }
-  if (!(await IsAdminAsync(auth.username, auth.database)) && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Reply[0]['post_id'] }))['TableSize'] === 1) {
+  const isAdmin = await IsAdminAsync(auth.username, auth.database);
+  if (!isAdmin && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Reply[0]['post_id'] }))['TableSize'] === 1) {
     return new Result(false, "讨论已被锁定");
   }
-  if (!(await IsAdminAsync(auth.username, auth.database)) && Reply[0]['user_id'] !== auth.username) {
+  if (!isAdmin && Reply[0]['user_id'] !== auth.username) {
     return new Result(false, "没有权限删除此回复");
   }
   if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_reply", { post_id: Reply[0]['post_id'] }))['TableSize'] === 1) {

@@ -34,7 +34,7 @@ export async function IfUserExist(Username: string, XMOJDatabase: Database): Pro
   {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + Username), { signal: controller.signal })
+    const res = await fetch(new URL("https://www.xmoj.tech/userinfo.php?user=" + encodeURIComponent(Username)), { signal: controller.signal })
     .then((Response) => {
       return Response.text();
     }).then((Response) => {
@@ -53,7 +53,7 @@ export async function IfUserExist(Username: string, XMOJDatabase: Database): Pro
 export async function GetProblemScore(ProblemID: number, Username: string, SessionID: string): Promise<number> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
-  return await fetch(new URL("https://www.xmoj.tech/status.php?user_id=" + Username + "&problem_id=" + ProblemID), {
+  return await fetch(new URL("https://www.xmoj.tech/status.php?user_id=" + encodeURIComponent(Username) + "&problem_id=" + ProblemID), {
     headers: {
       "Cookie": "PHPSESSID=" + SessionID,
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",

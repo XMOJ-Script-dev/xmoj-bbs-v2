@@ -68,12 +68,27 @@ export default eventHandler(async (event: any) => {
     board_id: Data.BoardID
   })) as { InsertID: number }).InsertID;
   
-  const ReplyID = (ThrowErrorIfFailed(await auth.database.Insert("bbs_reply", {
-    user_id: auth.username,
-    post_id: PostID,
-    content: sanitizeRichText(Data.Content),
-    reply_time: new Date().getTime()
-  })) as { InsertID: number }).InsertID;
+  // Create the initial reply. If this fails, we cleanup the orphaned post
+  let replyInsertResult;
+  try {
+    replyInsertResult = await auth.database.Insert("bbs_reply", {
+      user_id: auth.username,
+      post_id: PostID,
+      content: sanitizeRichText(Data.Content),
+      reply_time: new Date().getTime()
+    });
+    if (!replyInsertResult.Success) {
+      // Cleanup orphaned post
+      await auth.database.Delete("bbs_post", { post_id: PostID });
+      return new Result(false, "创建讨论失败，请稍后重试");
+    }
+  } catch (error) {
+    // Cleanup orphaned post on error
+    await auth.database.Delete("bbs_post", { post_id: PostID });
+    throw error;
+  }
+  
+  const ReplyID = (ThrowErrorIfFailed(replyInsertResult) as { InsertID: number }).InsertID;
   
   return new Result(true, "创建讨论成功", {
     PostID: PostID,

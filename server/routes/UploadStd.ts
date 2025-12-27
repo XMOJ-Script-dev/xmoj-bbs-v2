@@ -68,7 +68,14 @@ export default eventHandler(async (event) => {
       const timeout = setTimeout(() => controller.abort(), 10000);
       await fetch(new URL("https://www.xmoj.tech/status.php?problem_id=" + ProblemID + "&jresult=4"), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller.signal })
       .then((response) => response.text())
-      .then((body) => { const $ = load(body); SID = $(".oddrow > td:nth-child(2)").html() as string; })
+      .then((body) => { 
+        const $ = load(body); 
+        const htmlContent = $(".oddrow > td:nth-child(2)").html();
+        if (htmlContent === null) {
+          ThrowErrorIfFailed(new Result(false, "无法找到提交记录"));
+        }
+        SID = htmlContent as string; 
+      })
       .catch((Error) => { Output.Error("Get Std code failed: " + Error); ThrowErrorIfFailed(new Result(false, "获取SID失败")); })
       .finally(() => clearTimeout(timeout));
     }

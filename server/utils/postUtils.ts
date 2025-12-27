@@ -26,10 +26,8 @@ export async function DeletePostWithReplies(
   database: Database
 ): Promise<Result> {
   try {
-    const Replies = ThrowErrorIfFailed(await database.Select("bbs_reply", ["reply_id"], { post_id: postId }));
-    for (const reply of (Replies as any[])) {
-      ThrowErrorIfFailed(await database.Delete("bbs_reply", { reply_id: reply['reply_id'] }));
-    }
+    // Use bulk delete instead of N+1 queries for better performance
+    ThrowErrorIfFailed(await database.Delete("bbs_reply", { post_id: postId }));
     ThrowErrorIfFailed(await database.Delete("bbs_post", { post_id: postId }));
     ThrowErrorIfFailed(await database.Delete("bbs_lock", { post_id: postId }));
     return new Result(true, "删除讨论成功");

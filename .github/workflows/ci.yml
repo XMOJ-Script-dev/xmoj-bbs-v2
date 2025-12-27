@@ -37,8 +37,8 @@ jobs:
           path: package-lock.json
 
       - name: Audit dependencies
-        run: |
-          npm audit --production --audit-level=moderate || echo "Audit passed or warnings only"
+        run: npm audit --production --audit-level=moderate
+        continue-on-error: true
 
       - name: TypeScript compile check
         run: |

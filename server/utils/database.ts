@@ -33,7 +33,7 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'bbs_reply': ['reply_id', 'post_id', 'user_id', 'content', 'reply_time'],
   'bbs_board': ['board_id', 'board_name'],
   'bbs_mention': ['bbs_mention_id', 'post_id', 'reply_id', 'to_user_id', 'from_user_id', 'bbs_mention_time'],
-  'bbs_lock': ['post_id', 'lock_time'],
+  'bbs_lock': ['post_id', 'lock_time', 'lock_person'],
   'badge': ['user_id', 'background_color', 'color', 'content'],
   'phpsessid': ['token', 'user_id', 'create_time'],
   'mail': ['mail_id', 'from_user_id', 'to_user_id', 'title', 'content', 'send_time', 'read'],

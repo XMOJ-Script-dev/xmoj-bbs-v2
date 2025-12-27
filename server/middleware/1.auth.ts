@@ -19,6 +19,7 @@ import { defineEventHandler, readBody as h3ReadBody } from "h3";
 import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { Database } from "~/utils/database";
 import { CheckToken } from "~/utils/auth";
+import { Output } from "~/utils/output";
 
 export default defineEventHandler(async (event: any) => {
   const path = (event && (event as any).path) ? (event as any).path : "";
@@ -114,6 +115,8 @@ export default defineEventHandler(async (event: any) => {
     if (error instanceof Result) {
       throw error;
     }
-    // Let other errors pass through
+    // Log and throw non-Result errors to prevent authentication bypass
+    Output.Error("Unexpected error in auth middleware: " + (error instanceof Error ? error.message : String(error)));
+    throw new Result(false, "认证过程发生错误");
   }
 });

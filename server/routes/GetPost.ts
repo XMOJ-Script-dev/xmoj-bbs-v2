@@ -51,6 +51,13 @@ export default eventHandler(async (event) => {
     return new Result(false, "该讨论不存在");
   }
   
+  // Populate post data first before checking page count
+  ResponseData.UserID = Post[0]["user_id"];
+  ResponseData.ProblemID = Post[0]["problem_id"];
+  ResponseData.Title = Post[0]["title"];
+  ResponseData.PostTime = Post[0]["post_time"];
+  ResponseData.BoardID = Post[0]["board_id"];
+  
   ResponseData.PageCount = Math.ceil(ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_reply", { post_id: Data.PostID }))["TableSize"] / 15);
   if (ResponseData.PageCount === 0) {
     return new Result(true, "获得讨论成功", ResponseData);
@@ -58,12 +65,6 @@ export default eventHandler(async (event) => {
   if (Data.Page < 1 || Data.Page > ResponseData.PageCount) {
     return new Result(false, "参数页数不在范围1~" + ResponseData.PageCount + "内");
   }
-  
-  ResponseData.UserID = Post[0]["user_id"];
-  ResponseData.ProblemID = Post[0]["problem_id"];
-  ResponseData.Title = Post[0]["title"];
-  ResponseData.PostTime = Post[0]["post_time"];
-  ResponseData.BoardID = Post[0]["board_id"];
   {
     const Board = ThrowErrorIfFailed(await auth.database.Select("bbs_board", ["board_name"], { board_id: Post[0]["board_id"] }));
     ResponseData.BoardName = Board && Board.toString() !== "" ? Board[0]["board_name"] : "";

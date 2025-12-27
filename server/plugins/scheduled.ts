@@ -31,7 +31,7 @@ export default defineNitroPlugin((nitroApp: any) => {
     const { env, context } = event;
     let XMOJDatabase = new Database(env.DB);
 
-    context.waitUntil(new Promise<void>(async (Resolve) => {
+    context.waitUntil((async () => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
@@ -48,7 +48,6 @@ export default defineNitroPlugin((nitroApp: any) => {
           "Value": new Date().getTime() - SESSION_EXPIRY_MS
         }
       });
-      Resolve();
-    }));
+    })());
   });
 });

@@ -9,20 +9,22 @@ export function sanitizeRichText(input: string): string {
       out = out.replace(/<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
     } while (out !== prev);
   }
-  // Remove iframe/object/embed tags entirely
+  // Remove iframe/object/embed tags entirely (including self-closing and void tags)
   {
     let prev;
     do {
       prev = out;
-      out = out.replace(/<\s*(iframe|object|embed)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+      // Match both paired tags and self-closing/void tags
+      out = out.replace(/<\s*(iframe|object|embed)(?:[^>]*)>(?:[\s\S]*?<\s*\/\s*\1\s*>)?/gi, "");
     } while (out !== prev);
   }
-  // Strip on* event handler attributes
+  // Strip on* event handler attributes (quoted and unquoted, with any whitespace)
   {
     let prev;
     do {
       prev = out;
-      out = out.replace(/ on[a-zA-Z]+\s*=\s*(["'])[\s\S]*?\1/gi, "");
+      // Match both quoted and unquoted event handlers, allowing tabs/newlines before 'on'
+      out = out.replace(/\s+on[a-zA-Z]+\s*=\s*(?:(["'])[\s\S]*?\1|[^\s>]+)/gi, "");
     } while (out !== prev);
   }
   // Neutralize javascript: URLs in href/src
