@@ -41,7 +41,12 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'image': ['image_id', 'user_id', 'path', 'upload_time'],
   'std': ['std_id', 'user_id', 'problem_id', 'content', 'upload_time'],
   'std_answer': ['problem_id', 'std_code'],
-  'short_message': ['message_id','message_from','message_to','content','send_time','is_read']
+  'short_message': ['message_id','message_from','message_to','content','send_time','is_read'],
+  'bbs_admin': ['user_id'],
+  'bbs_silenced': ['user_id', 'silenced_until'],
+  'bbs_deny_message': ['user_id'],
+  'bbs_deny_badge_edit': ['user_id'],
+  'short_message_mention': ['mention_id', 'message_id', 'to_user_id', 'from_user_id', 'mention_time']
 };
 
 function validateTableName(table: string): void {

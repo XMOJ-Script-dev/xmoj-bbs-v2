@@ -37,6 +37,27 @@ export function sanitizeRichText(input: string): string {
     // Enforce closing tags
     enforceHtmlBoundary: true,
     // Nest block elements properly
-    nestingLimit: 50
+    nestingLimit: 50,
+    // Automatically add rel="noopener noreferrer" to links with target="_blank"
+    transformTags: {
+      'a': (tagName, attribs) => {
+        const rel = attribs.rel || '';
+        const relParts = new Set(rel.split(/\s+/).filter(Boolean));
+        
+        // If target is _blank, ensure noopener and noreferrer are present
+        if (attribs.target === '_blank') {
+          relParts.add('noopener');
+          relParts.add('noreferrer');
+        }
+        
+        return {
+          tagName,
+          attribs: {
+            ...attribs,
+            rel: Array.from(relParts).join(' ')
+          }
+        };
+      }
+    }
   });
 }
