@@ -25,7 +25,8 @@ let readonly = false; // set to true to allow maintenance
 // Whitelist of allowed tables and columns to prevent SQL injection
 const ALLOWED_TABLES = [
   'bbs_post', 'bbs_reply', 'bbs_board', 'bbs_mention', 'bbs_lock',
-  'badge', 'phpsessid', 'mail', 'image', 'std', 'std_answer', 'short_message'
+  'badge', 'phpsessid', 'mail', 'image', 'std', 'std_answer', 'short_message',
+  'bbs_admin', 'bbs_silenced', 'bbs_deny_message', 'bbs_deny_badge_edit', 'short_message_mention'
 ];
 
 const ALLOWED_COLUMNS: Record<string, string[]> = {
