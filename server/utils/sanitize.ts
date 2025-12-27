@@ -40,7 +40,7 @@ export function sanitizeRichText(input: string): string {
     nestingLimit: 50,
     // Automatically add rel="noopener noreferrer" to links with target="_blank"
     transformTags: {
-      'a': (tagName, attribs) => {
+      'a': (tagName: string, attribs: Record<string, string>) => {
         const rel = attribs.rel || '';
         const relParts = new Set(rel.split(/\s+/).filter(Boolean));
         
