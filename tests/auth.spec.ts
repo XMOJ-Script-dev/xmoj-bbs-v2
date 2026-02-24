@@ -1,3 +1,14 @@
+// Polyfill File API for undici in Node.js test environment
+if (typeof File === 'undefined') {
+  (global as any).File = class File extends Blob {
+    constructor(bits: any[], name: string, options?: any) {
+      super(bits, options);
+      Object.defineProperty(this, 'name', { value: name });
+      Object.defineProperty(this, 'lastModified', { value: options?.lastModified ?? Date.now() });
+    }
+  };
+}
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CheckToken } from '../server/utils/auth';
 
@@ -39,10 +50,8 @@ describe('CheckToken', () => {
   });
   
   afterEach(() => {
-    // Restore original fetch to prevent undici errors
-    if (originalFetch !== undefined) {
-      (globalThis as any).fetch = originalFetch;
-    }
+    // Restore original fetch to prevent test pollution
+    (globalThis as any).fetch = originalFetch;
   });
   
   it('accepts matching username', async () => {
