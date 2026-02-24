@@ -12,8 +12,6 @@ vi.mock('h3', async () => ({
 describe('GetAnalytics route', () => {
   beforeEach(() => {
     ;(globalThis as any).defineEventHandler = (h: any) => h
-    // Provide env required by handler
-    ;(process as any).env = { ...(process as any).env, ACCOUNT_ID: 'acc', API_TOKEN: 'tok', AnalyticsDataset: 'ds' }
     ;(globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ rows: [{ c: 1 }] }),
@@ -25,7 +23,12 @@ describe('GetAnalytics route', () => {
     const mockDatabase = {
       GetTableSize: vi.fn().mockResolvedValue({ Success: true, Data: { TableSize: 1 }, Message: 'OK' })
     }
-    const res = await handler({ context: { auth: { username: 'admin', database: mockDatabase } } } as any)
+    const res = await handler({ 
+      context: { 
+        auth: { username: 'admin', database: mockDatabase },
+        cloudflare: { env: { ACCOUNT_ID: 'acc', API_TOKEN: 'tok', AnalyticsDataset: 'ds' } }
+      } 
+    } as any)
     expect(res.Success).toBe(true)
     expect((res.Data as any).rows?.length).toBe(1)
   })
@@ -36,7 +39,12 @@ describe('GetAnalytics route', () => {
     const mockDatabase = {
       GetTableSize: vi.fn().mockResolvedValue({ Success: true, Data: { TableSize: 1 }, Message: 'OK' })
     }
-    const res = await handler({ context: { auth: { username: 'admin', database: mockDatabase } } } as any)
+    const res = await handler({ 
+      context: { 
+        auth: { username: 'admin', database: mockDatabase },
+        cloudflare: { env: { ACCOUNT_ID: 'acc', API_TOKEN: 'tok', AnalyticsDataset: 'ds' } }
+      } 
+    } as any)
     expect(res.Success).toBe(false)
   })
 })
