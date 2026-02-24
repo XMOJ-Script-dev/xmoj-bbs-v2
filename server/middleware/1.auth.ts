@@ -112,7 +112,11 @@ export default defineEventHandler(async (event: any) => {
     event.context.auth = {
       username: Authentication.Username,
       sessionID: Authentication.SessionID,
-      database: XMOJDatabase
+      database: XMOJDatabase,
+      // Add notification namespace if available (optional Durable Object)
+      notificationNamespace: (cloudflare.env as any).NOTIFICATIONS,
+      // Add notification token for authentication (matches Process.ts)
+      notificationToken: (cloudflare.env as any)?.NOTIFICATION_PUSH_TOKEN
     };
     
     // Store request metadata with explicit guards

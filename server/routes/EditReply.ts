@@ -59,7 +59,7 @@ export default eventHandler(async (event) => {
   }, { reply_id: Data.ReplyID }));
   
   for (const person of uniqueMentions) {
-    await AddBBSMention(person, auth.username, Reply[0]['post_id'], Data.ReplyID, auth.database);
+    await AddBBSMention(person, auth.username, Reply[0]['post_id'], Data.ReplyID, auth.database, (auth as any).notificationNamespace, (auth as any).notificationToken);
   }
   return new Result(true, "编辑回复成功");
 });

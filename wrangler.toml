@@ -27,5 +27,14 @@ binding = "logdb"
 [ai]
 binding = "AI"
 
+[observability]
+enabled = true
+
 [site]
 bucket = './.output/public'
+
+# Notification Manager Durable Object
+# Uncomment when implementing user notifications
+# [[durable_objects.bindings]]
+# name = "NOTIFICATIONS"
+# class_name = "NotificationManager"

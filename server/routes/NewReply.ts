@@ -85,11 +85,11 @@ export default eventHandler(async (event: any) => {
   })) as { InsertID: number }).InsertID;
   
   for (const person of MentionPeople) {
-    await AddBBSMention(person, auth.username, Data.PostID, ReplyID, auth.database);
+    await AddBBSMention(person, auth.username, Data.PostID, ReplyID, auth.database, (auth as any).notificationNamespace, (auth as any).notificationToken);
   }
   
   if ((Post as any[])[0]["user_id"] !== auth.username) {
-    await AddBBSMention((Post as any[])[0]["user_id"], auth.username, Data.PostID, ReplyID, auth.database);
+    await AddBBSMention((Post as any[])[0]["user_id"], auth.username, Data.PostID, ReplyID, auth.database, (auth as any).notificationNamespace, (auth as any).notificationToken);
   }
   
   return new Result(true, "创建回复成功", {
