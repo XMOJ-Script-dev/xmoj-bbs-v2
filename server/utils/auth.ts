@@ -70,6 +70,7 @@ export async function DenyEditAsync(Username: string, XMOJDatabase: Database): P
     return size > 0;
   } catch {
     return false;
+  }
 }
 
 export async function CheckToken(
@@ -193,9 +194,13 @@ export async function CheckToken(
           if (m && m[1]) found = m[1];
         });
         if (found) return found;
+        // Fallback to regex if cheerio didn't find anything
+        const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
+        return m ? m[1] : "";
       } catch {
-      const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
-      return m ? m[1] : "";
+        const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
+        return m ? m[1] : "";
+      }
     }).catch((Error) => {
       Output.Error("Check token failed: " + Error + "\n" +
         "PHPSessionID: \"" + mask(SessionID) + "\"\n" +
