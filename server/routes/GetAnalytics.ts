@@ -39,9 +39,10 @@ export default defineEventHandler(async (event: H3Event) => {
       return new Result(false, 'Query pattern not allowed for security reasons. Use standard analytics queries (COUNT, percentiles, quantiles)');
     }
 
-    const accountId = process.env.ACCOUNT_ID
-    const apiToken = process.env.API_TOKEN
-    const dataset = (process.env as any).AnalyticsDataset || 'xmoj_bbs'
+    const { cloudflare } = event.context;
+    const accountId = cloudflare.env.ACCOUNT_ID
+    const apiToken = cloudflare.env.API_TOKEN
+    const dataset = cloudflare.env.AnalyticsDataset || 'xmoj_bbs'
     if (!accountId || !apiToken) return new Result(false, 'Missing ACCOUNT_ID or API_TOKEN')
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;

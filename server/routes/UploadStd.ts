@@ -44,12 +44,20 @@ export default eventHandler(async (event) => {
   }
   let StdCode: string = "";
   let PageIndex: number = 0;
-  while (StdCode === "") {
+  const MAX_PAGES = 50; // Prevent infinite loop
+  let lastPageContent = "";
+  while (StdCode === "" && PageIndex < MAX_PAGES) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     await fetch(new URL("https://www.xmoj.tech/problemstatus.php?id=" + ProblemID + "&page=" + PageIndex), { headers: { "Cookie": "PHPSESSID=" + auth.sessionID }, signal: controller.signal })
       .then((Response) => Response.text())
       .then(async (Response) => {
+        // Detect if we're stuck on the same page (no more results)
+        if (Response === lastPageContent) {
+          StdCode = "这道题没有标程（即用户std没有AC这道题）";
+          return;
+        }
+        lastPageContent = Response;
         if (Response.indexOf("[NEXT]") === -1) { StdCode = "这道题没有标程（即用户std没有AC这道题）"; return; }
         const ParsedDocument: CheerioAPI = load(Response);
         const SubmitTable = ParsedDocument("#problemstatus");

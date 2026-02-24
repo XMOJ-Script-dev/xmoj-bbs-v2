@@ -64,11 +64,13 @@ export async function AddBBSMention(
 export async function AddMailMention(
   FromUserID: string,
   ToUserID: string,
+  MessageID: number,
   XMOJDatabase: Database
 ): Promise<void> {
   // Use INSERT OR REPLACE pattern to handle race conditions atomically
   try {
     await XMOJDatabase.Insert("short_message_mention", {
+      message_id: MessageID,
       from_user_id: FromUserID,
       to_user_id: ToUserID,
       mention_time: new Date().getTime()

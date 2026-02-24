@@ -58,6 +58,6 @@ export default eventHandler(async (event) => {
     content: encryptedContent,
     send_time: new Date().getTime()
   }))['InsertID'];
-  await AddMailMention(auth.username, Data.ToUser, auth.database);
+  await AddMailMention(auth.username, Data.ToUser, MessageID, auth.database);
   return new Result(true, "发送短消息成功", { MessageID });
 });
