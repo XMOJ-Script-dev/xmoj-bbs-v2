@@ -15,216 +15,193 @@
  *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-interface Notification {
-  id: number
+/**
+ * Durable Object used to manage notification WebSocket sessions per user.
+ *
+ * This implementation uses the WebSocket Hibernation API via
+ * `state.acceptWebSocket(...)` so idle websocket connections do not keep the DO
+ * actively running.
+ */
+interface NotificationAttachment {
   userId: string
-  type: 'bbs_mention' | 'mail_mention'
-  data: Record<string, any>
-  timestamp: number
+  connectedAt: number
 }
 
-/**
- * NotificationManager Durable Object
- * Handles user notifications using D1 database
- * Supports BBS mentions and mail mentions
- */
-export class NotificationManager {
-  private state: DurableObjectState
-  private env: any
-  private notificationPushToken: string = ''
+interface HibernationWebSocket extends WebSocket {
+  serializeAttachment: (value: NotificationAttachment) => void
+  deserializeAttachment: () => NotificationAttachment | null
+}
 
-  constructor(state: DurableObjectState, env: any) {
+interface NotificationEnvironment {
+  NOTIFICATION_PUSH_TOKEN?: string
+}
+
+export class NotificationManager {
+  private readonly state: DurableObjectState
+  private readonly sessions: Map<string, Set<WebSocket>>
+  private readonly pushToken: string
+  private static readonly MAX_SESSIONS_PER_USER = 20
+
+  constructor(state: DurableObjectState, env: NotificationEnvironment) {
     this.state = state
-    this.env = env
-    // Get notification token from environment
-    this.notificationPushToken = (env as any)?.NOTIFICATION_PUSH_TOKEN || ''
+    this.sessions = new Map<string, Set<WebSocket>>()
+    this.pushToken = env.NOTIFICATION_PUSH_TOKEN || ''
+    // `state.getWebSockets()` is synchronous in the current Cloudflare runtime.
+    this.rebuildSessionIndex()
+  }
+
+  /**
+   * Rebuild in-memory session index from hibernated sockets on cold start.
+   */
+  private rebuildSessionIndex(): void {
+    for (const websocket of this.state.getWebSockets()) {
+      const userId = this.getSocketUserId(websocket)
+      if (!userId) {
+        continue
+      }
+      this.addSession(userId, websocket)
+    }
+  }
+
+  /**
+   * Store a socket in the per-user set (supports multi-tab / multi-device).
+   *
+   * To avoid abuse, each user is capped at MAX_SESSIONS_PER_USER sockets. When
+   * exceeded, the oldest socket is closed and removed.
+   */
+  private addSession(userId: string, websocket: WebSocket): void {
+    let userSessions = this.sessions.get(userId)
+    if (!userSessions) {
+      userSessions = new Set<WebSocket>()
+      this.sessions.set(userId, userSessions)
+    }
+
+    userSessions.add(websocket)
+    while (userSessions.size > NotificationManager.MAX_SESSIONS_PER_USER) {
+      const oldestSession = userSessions.values().next().value as WebSocket | undefined
+      if (!oldestSession) {
+        break
+      }
+      this.removeSession(userId, oldestSession)
+      try {
+        oldestSession.close(1008, 'Too many websocket sessions')
+      } catch (_) {
+        // Best effort close.
+      }
+    }
+  }
+
+  /**
+   * Remove a socket from the in-memory index and cleanup empty user entries.
+   */
+  private removeSession(userId: string, websocket: WebSocket): void {
+    const userSessions = this.sessions.get(userId)
+    if (!userSessions) {
+      return
+    }
+
+    userSessions.delete(websocket)
+    if (userSessions.size === 0) {
+      this.sessions.delete(userId)
+    }
+  }
+
+  /**
+   * Read the socket's bound user ID from hibernation attachment metadata.
+   */
+  private getSocketUserId(websocket: WebSocket): string {
+    try {
+      const attachment = (websocket as HibernationWebSocket).deserializeAttachment()
+      if (attachment && attachment.userId !== '') {
+        return attachment.userId
+      }
+    } catch (_) {
+      // Ignore attachment parse failures and treat socket as anonymous.
+    }
+    return ''
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
-    const pathname = url.pathname
-    const method = request.method
 
-    try {
-      // Route: POST /notify - Add notification (compatible with Process.ts)
-      if (pathname === '/notify' && method === 'POST') {
-        return await this.handleNotify(request)
+    // Internal push channel from Process.ts.
+    if (url.pathname === '/notify') {
+      if (this.pushToken === '' || request.headers.get('X-Notification-Token') !== this.pushToken) {
+        return new Response('Unauthorized', { status: 401 })
       }
 
-      // Route: GET /list/:userId - Get user notifications
-      if (pathname.match(/^\/list\/[^/]+$/) && method === 'GET') {
-        return await this.handleList(request)
-      }
-
-      // Route: DELETE /:notificationId - Delete notification
-      if (pathname.match(/^\/\d+$/) && method === 'DELETE') {
-        return await this.handleDelete(request)
-      }
-
-      // Route: DELETE /user/:userId/:type - Delete all notifications of type for user
-      if (pathname.match(/^\/user\/[^/]+\/(bbs_mention|mail_mention)$/) && method === 'DELETE') {
-        return await this.handleDeleteByType(request)
-      }
-
-      return new Response('Not Found', { status: 404 })
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      return new Response(JSON.stringify({ error: errorMsg }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-  }
-
-  /**
-   * Handle notify endpoint (compatible with Process.ts)
-   * Validates X-Notification-Token if configured
-   */
-  private async handleNotify(request: Request): Promise<Response> {
-    // Validate token if configured (for security, matching Process.ts behavior)
-    if (this.notificationPushToken) {
-      const token = request.headers.get('X-Notification-Token')
-      if (token !== this.notificationPushToken) {
-        return new Response(JSON.stringify({ error: 'Invalid token' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-    }
-
-    const { userId, notification, type, data } = await request.json() as {
-      userId: string
-      notification?: Record<string, any>
-      type?: 'bbs_mention' | 'mail_mention'
-      data?: Record<string, any>
-    }
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Missing userId' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Support both old format (notification) and new format (type + data)
-    const notificationType = type || (notification as any)?.type || 'unknown'
-    const notificationData = data || notification || {}
-
-    // Store notification in isolation storage
-    const notificationId = await this.state.blockConcurrencyWhile(async () => {
-      const counter = await this.state.storage?.get<number>('notificationCounter') || 0
-      const newId = counter + 1
-      await this.state.storage?.put('notificationCounter', newId)
-      return newId
-    })
-
-    const storedNotification: Notification = {
-      id: notificationId,
-      userId,
-      type: notificationType as 'bbs_mention' | 'mail_mention',
-      data: notificationData,
-      timestamp: Date.now()
-    }
-
-    const key = `notification:${userId}:${notificationId}`
-    await this.state.storage?.put(key, JSON.stringify(storedNotification))
-
-    return new Response(JSON.stringify({ success: true, id: notificationId }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
-  }
-
-  /**
-   * Handle list notifications
-   * Returns all notifications for a user
-   */
-  private async handleList(request: Request): Promise<Response> {
-    const userId = new URL(request.url).pathname.split('/').pop()
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'userId required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    const notifications: Notification[] = []
-
-    // List all keys for this user and retrieve notifications
-    const list = await this.state.storage?.list({ prefix: `notification:${userId}:` })
-    if (list) {
-      for (const [, value] of list) {
-        const notification: Notification = JSON.parse(value as string)
-        notifications.push(notification)
-      }
-    }
-
-    // Sort by timestamp descending (newest first)
-    notifications.sort((a, b) => b.timestamp - a.timestamp)
-
-    return new Response(JSON.stringify({ success: true, notifications }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
-  }
-
-  /**
-   * Handle delete notification
-   * Deletes a specific notification by ID
-   */
-  private async handleDelete(request: Request): Promise<Response> {
-    const parts = new URL(request.url).pathname.split('/')
-    const notificationId = Number(parts[parts.length - 1])
-    const userId = new URL(request.url).searchParams.get('userId')
-
-    if (!userId || !notificationId) {
-      return new Response(JSON.stringify({ error: 'userId and notificationId required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    const key = `notification:${userId}:${notificationId}`
-    await this.state.storage?.delete(key)
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
-  }
-
-  /**
-   * Handle delete by type
-   * Deletes all notifications of a specific type for a user
-   */
-  private async handleDeleteByType(request: Request): Promise<Response> {
-    const parts = new URL(request.url).pathname.split('/')
-    const userId = parts[parts.length - 2]
-    const type = parts[parts.length - 1] as 'bbs_mention' | 'mail_mention'
-
-    if (!userId || !type) {
-      return new Response(JSON.stringify({ error: 'userId and type required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
-    }
-
-    // List and delete notifications of this type for user
-    const list = await this.state.storage?.list({ prefix: `notification:${userId}:` })
-    const keysToDelete: string[] = []
-
-    if (list) {
-      for (const [key, value] of list) {
-        const notification: Notification = JSON.parse(value as string)
-        if (notification.type === type) {
-          keysToDelete.push(key)
+      const body = (await request.json()) as { userId: string; notification: object }
+      const userSessions = this.sessions.get(body.userId)
+      if (userSessions) {
+        const payload = JSON.stringify(body.notification)
+        for (const websocket of userSessions) {
+          if (websocket.readyState === 1) {
+            websocket.send(payload)
+          }
         }
       }
+      return new Response('OK')
     }
 
-    for (const key of keysToDelete) {
-      await this.state.storage?.delete(key)
+    const upgradeHeader = request.headers.get('Upgrade')
+    if (upgradeHeader !== 'websocket') {
+      return new Response('Expected WebSocket', { status: 426 })
     }
 
-    return new Response(JSON.stringify({ success: true, deleted: keysToDelete.length }), {
-      headers: { 'Content-Type': 'application/json' }
+    const userId = url.searchParams.get('userId')
+    if (!userId) {
+      return new Response('Missing userId', { status: 400 })
+    }
+
+    const pair = new WebSocketPair()
+    const [client, server] = Object.values(pair)
+
+    // Hibernation API: allow DO to sleep while websocket is idle.
+    this.state.acceptWebSocket(server)
+    ;(server as HibernationWebSocket).serializeAttachment({
+      userId,
+      connectedAt: Date.now()
     })
+    this.addSession(userId, server)
+
+    server.send(
+      JSON.stringify({
+        type: 'connected',
+        timestamp: Date.now()
+      })
+    )
+
+    return new Response(null, { status: 101, webSocket: client })
+  }
+
+  webSocketMessage(websocket: WebSocket, message: string | ArrayBuffer): void {
+    try {
+      const parsedMessage = JSON.parse(typeof message === 'string' ? message : new TextDecoder().decode(message))
+      if (parsedMessage.type === 'ping') {
+        websocket.send(JSON.stringify({ type: 'pong' }))
+      }
+    } catch (_) {
+      // Ignore malformed client messages to keep the connection alive.
+    }
+  }
+
+  webSocketClose(websocket: WebSocket): void {
+    const userId = this.getSocketUserId(websocket)
+    if (userId !== '') {
+      this.removeSession(userId, websocket)
+    }
+  }
+
+  webSocketError(websocket: WebSocket): void {
+    const userId = this.getSocketUserId(websocket)
+    if (userId !== '') {
+      this.removeSession(userId, websocket)
+    }
+
+    try {
+      websocket.close(1011, 'Socket error')
+    } catch (_) {
+      // Socket may already be closed by runtime/client.
+    }
   }
 }

@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "nitro build",
+    "build": "nitro build && node scripts/export-durable-objects.js",
     "dev": "nitro dev",
     "prepare": "nitro prepare",
     "preview": "node .output/server/index.mjs",

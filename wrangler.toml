@@ -34,7 +34,11 @@ enabled = true
 bucket = './.output/public'
 
 # Notification Manager Durable Object
-# Uncomment when implementing user notifications
-# [[durable_objects.bindings]]
-# name = "NOTIFICATIONS"
-# class_name = "NotificationManager"
+[[durable_objects.bindings]]
+name = "NOTIFICATIONS"
+class_name = "NotificationManager"
+
+# Migration for NotificationManager Durable Object
+[[migrations]]
+tag = "v1"
+new_classes = ["NotificationManager"]

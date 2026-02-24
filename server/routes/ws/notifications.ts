@@ -16,50 +16,63 @@
  */
 
 /**
- * HTTP Polling endpoint for notifications (WebSocket fallback)
- * Maintains backward compatibility with old Process.ts client
- * Since Cloudflare Workers HTTP doesn't support WebSocket upgrades,
- * we provide an HTTP polling endpoint instead.
+ * WebSocket notifications endpoint
+ * Forwards WebSocket upgrade requests to the NotificationManager Durable Object
  * 
- * Route: GET /ws/notifications?SessionID=<sessionId>
- * 
- * Usage:
- * - Client sends GET request with SessionID
- * - Server responds with JSON containing notifications
- * - Client polls periodically to receive notifications
- * 
- * Response format:
- * {
- *   notifications: [
- *     {
- *       type: "bbs_mention" | "mail_mention",
- *       data: { ... }
- *     }
- *   ]
- * }
+ * Route: GET /ws/notifications?userId=<userId>
+ * Protocol: WebSocket (wss)
  */
 
 export default eventHandler(async (event) => {
-  const query = getQuery(event);
-  const sessionID = query.SessionID as string;
+  const query = getQuery(event)
+  const userId = query.userId as string || query.SessionID as string
 
-  if (!sessionID) {
-    return new Response(JSON.stringify({ error: 'Missing SessionID' }), {
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Missing userId or SessionID' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
-    });
+    })
   }
 
-  // For now, return empty notifications
-  // In a production setup with state management, would retrieve from KV/Durable Objects
-  return new Response(JSON.stringify({
-    notifications: [],
-    sessionID
-  }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Connection': 'keep-alive'
+  // Get Cloudflare context
+  const cf = event.context.cloudflare || (globalThis as any).cloudflare
+  if (!cf?.env?.NOTIFICATIONS) {
+    return new Response(JSON.stringify({ error: 'Notifications service unavailable' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  try {
+    // Get the raw request from Nitro
+    const req = (event as any).node?.req as any
+    if (!req) {
+      return new Response(JSON.stringify({ error: 'Invalid request context' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
-  });
-});
+
+    // Get Durable Object stub using userId as the identity
+    const namespace = cf.env.NOTIFICATIONS
+    const stub = namespace.get(namespace.idFromName(userId))
+
+    // Build a proper request for the Durable Object with WebSocket headers
+    const wsUrl = new URL('https://notifications/ws', 'https://notifications')
+    wsUrl.searchParams.set('userId', userId)
+
+    const doRequest = new Request(wsUrl.toString(), {
+      method: req.method || 'GET',
+      headers: req.headers || {}
+    })
+
+    // Forward to Durable Object - it will handle the WebSocket upgrade
+    return stub.fetch(doRequest)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    return new Response(JSON.stringify({ error: `WebSocket failed: ${errorMsg}` }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+})
