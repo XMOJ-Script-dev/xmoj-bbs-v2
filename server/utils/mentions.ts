@@ -81,6 +81,7 @@ export async function AddMailMention(
     if (errMsg.includes('UNIQUE') || errMsg.includes('duplicate')) {
       try {
         await XMOJDatabase.Update("short_message_mention", {
+          message_id: MessageID,
           mention_time: new Date().getTime()
         }, {
           from_user_id: FromUserID,

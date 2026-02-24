@@ -84,7 +84,8 @@ export default eventHandler(async (event) => {
       .finally(() => clearTimeout(timeout));
     PageIndex++;
   }
-  if (StdCode === "这道题没有标程（即用户std没有AC这道题）") {
+  // If MAX_PAGES reached or no std found message, trigger fallback
+  if (StdCode === "" || StdCode === "这道题没有标程（即用户std没有AC这道题）") {
     StdCode = "";
     let SID: string = "0";
     {
