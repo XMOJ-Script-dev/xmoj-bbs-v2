@@ -30,7 +30,7 @@ const ALLOWED_TABLES = [
 ];
 
 const ALLOWED_COLUMNS: Record<string, string[]> = {
-  'bbs_post': ['post_id', 'user_id', 'title', 'content', 'board_id', 'post_time', 'last_reply_time', 'edit_time', 'edit_person'],
+  'bbs_post': ['post_id', 'user_id', 'problem_id', 'title', 'content', 'board_id', 'post_time', 'last_reply_time', 'edit_time', 'edit_person'],
   'bbs_reply': ['reply_id', 'post_id', 'user_id', 'content', 'reply_time', 'edit_time', 'edit_person'],
   'bbs_board': ['board_id', 'board_name'],
   'bbs_mention': ['bbs_mention_id', 'post_id', 'reply_id', 'to_user_id', 'from_user_id', 'bbs_mention_time'],
