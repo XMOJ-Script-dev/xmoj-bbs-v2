@@ -147,7 +147,7 @@ export async function AddMailMention(
       message_id: MessageID,
       from_user_id: FromUserID,
       to_user_id: ToUserID,
-      mention_time: new Date().getTime()
+      mail_mention_time: new Date().getTime()
     }));
 
     const mentionId = (result as any).InsertID;
@@ -168,7 +168,7 @@ export async function AddMailMention(
       try {
         await XMOJDatabase.Update("short_message_mention", {
           message_id: MessageID,
-          mention_time: new Date().getTime()
+          mail_mention_time: new Date().getTime()
         }, {
           from_user_id: FromUserID,
           to_user_id: ToUserID

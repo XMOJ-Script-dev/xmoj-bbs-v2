@@ -46,7 +46,7 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'bbs_silenced': ['user_id', 'silenced_until'],
   'bbs_deny_message': ['user_id'],
   'bbs_deny_badge_edit': ['user_id'],
-  'short_message_mention': ['mention_id', 'message_id', 'to_user_id', 'from_user_id', 'mention_time']
+  'short_message_mention': ['mail_mention_id', 'message_id', 'to_user_id', 'from_user_id', 'mail_mention_time']
 };
 
 function validateTableName(table: string): void {

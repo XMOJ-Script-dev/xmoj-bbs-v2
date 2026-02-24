@@ -28,7 +28,7 @@ export default eventHandler(async (event) => {
     await auth.database.Select(
       "short_message_mention",
       ["to_user_id"],
-      { mention_id: Data.MentionID }
+      { mail_mention_id: Data.MentionID }
     )
   );
 
@@ -42,7 +42,7 @@ export default eventHandler(async (event) => {
 
   ThrowErrorIfFailed(
     await auth.database.Delete("short_message_mention", {
-      mention_id: Data.MentionID
+      mail_mention_id: Data.MentionID
     })
   );
 
