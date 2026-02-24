@@ -41,14 +41,10 @@ export function sanitizeRichText(input: string): string {
     enforceHtmlBoundary: true,
     // Nest block elements properly
     nestingLimit: 50,
-    // Filter out dangerous data attributes and event handlers
+    // Normalize HTML during parsing
     parser: {
       lowerCaseAttributeNames: true,
       lowerCaseTags: true
-    },
-    // Custom filter for href attributes - prevent javascript: and data: URIs
-    onIgnoreTag: function(tag: string, node: any) {
-      // Keep processing all tags through the allowed list
     },
     // Automatically add rel="noopener noreferrer" to links with target="_blank"
     transformTags: {

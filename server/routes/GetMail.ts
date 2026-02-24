@@ -67,8 +67,11 @@ export default eventHandler(async (event) => {
   // Fetch sent messages with remaining limit
   const remainingLimit = Math.max(0, limit - ResponseData.Mail.length);
   if (remainingLimit > 0) {
-    // Calculate offset for sent messages: only apply offset if we've gone past all received messages
-    const sentOffset = offset > totalFrom ? offset - totalFrom : 0;
+    // Calculate offset for sent messages correctly:
+    // If we got fewer messages from the first query, adjust the offset accordingly
+    // Formula: sentOffset = max(0, offsetRequested + messagesGotFromFirst - totalFirst)
+    // This ensures no gaps or duplicates in pagination across merged sources
+    const sentOffset = Math.max(0, offset + ResponseData.Mail.length - totalFrom);
     Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: auth.username, message_to: Data.OtherUser }, { Order: "send_time", OrderIncreasing: false, Limit: remainingLimit, Offset: sentOffset }));
     for (const Mail of (Mails as any[])) {
       try {

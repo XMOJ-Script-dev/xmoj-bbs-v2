@@ -38,8 +38,9 @@ async function deriveKey(
   toUser: string,
   salt: Uint8Array
 ): Promise<CryptoKey> {
-  // Create consistent key material from base key and users
-  const keyMaterial = baseKey + fromUser + toUser;
+  // Create consistent key material from base key and users, with separator to prevent collisions
+  // E.g. baseKey="ab" + fromUser="b" + toUser="cd" = "ab\0b\0cd" (not "abbcd")
+  const keyMaterial = [baseKey, fromUser, toUser].join('\0');
   const encoder = new TextEncoder();
   const keyMaterialBytes = encoder.encode(keyMaterial);
   

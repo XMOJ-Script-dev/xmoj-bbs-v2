@@ -21,6 +21,24 @@ export default defineEventHandler(async (event: H3Event) => {
     const sql = (Data?.sql as string) || ''
     if (!sql) return new Result(false, 'Missing SQL')
 
+    // Validate SQL query against allowed patterns to prevent arbitrary data exfiltration
+    // Only allow safe readonly analytics queries, not full data acess
+    const allowedQueryPatterns = [
+      /^SELECT\s+COUNT\(\*\)\s+FROM\s/i,  // COUNT(*) from tables
+      /^SELECT\s+COUNT\(DISTINCT\s+\w+\)\s+FROM\s/i,  // COUNT(DISTINCT col)
+      /^SELECT\s+\w+\s+FROM\s+\w+\s+WHERE/i,  // Simple WHERE queries
+      /^SELECT\s+percentiles/i,  // Percentile queries
+      /^SELECT\s+quantiles/i,  // Quantile queries
+    ];
+    
+    const queryModified = sql.trim().toUpperCase();
+    const isAllowed = allowedQueryPatterns.some(pattern => pattern.test(queryModified));
+    
+    if (!isAllowed) {
+      Output.Warn(`Analytics query blocked - pattern not whitelisted: ${sql.substring(0, 100)}`);
+      return new Result(false, 'Query pattern not allowed for security reasons. Use standard analytics queries (COUNT, percentiles, quantiles)');
+    }
+
     const accountId = process.env.ACCOUNT_ID
     const apiToken = process.env.API_TOKEN
     const dataset = (process.env as any).AnalyticsDataset || 'xmoj_bbs'

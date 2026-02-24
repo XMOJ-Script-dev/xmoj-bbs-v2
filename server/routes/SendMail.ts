@@ -19,8 +19,8 @@ import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
 import { CheckParams } from "~/utils/checkParams";
 import { DenyMessageAsync, IsSilencedAsync, IsAdminAsync } from "~/utils/auth";
 import { AddMailMention } from "~/utils/mentions";
-import { encryptMessage } from "~/utils/messageEncryption";
 import { IfUserExist } from "~/utils/xmoj";
+import CryptoJS from "crypto-js";
 
 export default eventHandler(async (event) => {
   const body = await readBody(event);
@@ -45,13 +45,13 @@ export default eventHandler(async (event) => {
     return new Result(false, "你已被禁言，无法向非管理员发送短消息");
   }
   
-  // Use new v3 encryption with proper key derivation and authenticated encryption
-  const encryptedContent = await encryptMessage(
+  // Use v2 encryption (CryptoJS AES) for compatibility with existing messages
+  // Key format: baseKey + fromUser + toUser (matches legacy Process.ts implementation)
+  const encryptedContent = "Begin xssmseetee v2 encrypted message" + CryptoJS.AES.encrypt(
     Data.Content,
-    cloudflare.env.xssmseetee_v1_key,
-    auth.username,
-    Data.ToUser
-  );
+    cloudflare.env.xssmseetee_v1_key + auth.username + Data.ToUser
+  ).toString();
+  
   const MessageID = ThrowErrorIfFailed(await auth.database.Insert("short_message", {
     message_from: auth.username,
     message_to: Data.ToUser,

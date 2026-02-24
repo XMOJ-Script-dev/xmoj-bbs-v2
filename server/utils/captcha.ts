@@ -55,6 +55,11 @@ export async function VerifyCaptcha(
   const now = Date.now();
   if (failures && (now - failures.timestamp) < CAPTCHA_FAILURE_WINDOW_MS) {
     if (failures.count >= MAX_CAPTCHA_FAILURES) {
+      // Device IP-based rate limiting using in-memory map
+      if (!KV) {
+        Output.Warn(`CAPTCHA rate limiting is using in-memory storage (no KV available). ` +
+          `This provides no protection across Cloudflare isolates. Deploy with KV binding for proper distributed rate limiting.`);
+      }
       Output.Warn(`CAPTCHA rate limit exceeded for IP: ${RemoteIP}`);
       return new Result(false, "验证码失败次数过多，请稍后重试");
     }

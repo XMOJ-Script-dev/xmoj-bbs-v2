@@ -68,27 +68,31 @@ export default defineEventHandler(async (event: any) => {
     const url = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(targetPath)}`
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 12000)
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${pat}`,
-        Accept: 'application/vnd.github+json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        message: `Upload image ${targetPath}`,
-        content,
-      }),
-    })
+    try {
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${pat}`,
+          Accept: 'application/vnd.github+json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          message: `Upload image ${targetPath}`,
+          content,
+        }),
+      })
 
-    if (!res.ok) {
-      const t = await res.text()
-      Output.Error('UploadImage: ' + t)
-      return new Result(false, `GitHub upload failed: ${res.status}`)
+      if (!res.ok) {
+        const t = await res.text()
+        Output.Error('UploadImage: ' + t)
+        return new Result(false, `GitHub upload failed: ${res.status}`)
+      }
+
+      clearTimeout(timeout)
+      return new Result(true, 'OK', { id, path: targetPath })
+    } finally {
+      clearTimeout(timeout)
     }
-
-    clearTimeout(timeout)
-    return new Result(true, 'OK', { id, path: targetPath })
   } catch (err: any) {
     Output.Error('UploadImage: ' + (err?.message || String(err)))
     return new Result(false, 'Unexpected error')

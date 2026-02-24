@@ -31,42 +31,45 @@ const HOURS_PER_DAY = 24;
 const SESSION_EXPIRY_DAYS = 7;
 const SESSION_EXPIRY_MS = SESSION_EXPIRY_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
 
-const AdminUserList: Array<string> = ["chenlangning", "shanwenxiao", "zhuchenrui2"];
-const DenyMessageList: Array<string> = ["std"];
-const SilencedUser: Array<string> = ["zhaochenyi", "qianwenyu"];
+const AdminUserList: Array<string> = [];
+const DenyMessageList: Array<string> = [];
+const SilencedUser: Array<string> = [];
 const DenyBadgeEditList: Array<string> = [];
 
-// Database-driven checks with safe fallback to legacy lists
+// Database-driven checks
 export async function IsAdminAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
   try {
     const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_admin", { user_id: Username }))['TableSize'];
-    if (size > 0) return true;
-  } catch {}
-  return AdminUserList.indexOf(Username) !== -1;
+    return size > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function IsSilencedAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
   try {
     const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_silenced", { user_id: Username }))['TableSize'];
-    if (size > 0) return true;
-  } catch {}
-  return SilencedUser.indexOf(Username) !== -1;
+    return size > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function DenyMessageAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
   try {
     const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_deny_message", { user_id: Username }))['TableSize'];
-    if (size > 0) return true;
-  } catch {}
-  return DenyMessageList.indexOf(Username) !== -1;
+    return size > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function DenyEditAsync(Username: string, XMOJDatabase: Database): Promise<boolean> {
   try {
     const size = ThrowErrorIfFailed(await XMOJDatabase.GetTableSize("bbs_deny_badge_edit", { user_id: Username }))['TableSize'];
-    if (size > 0) return true;
-  } catch {}
-  return DenyBadgeEditList.indexOf(Username) !== -1;
+    return size > 0;
+  } catch {
+    return false;
 }
 
 export async function CheckToken(
@@ -78,8 +81,6 @@ export async function CheckToken(
   // Optional request metadata for session binding
   requestMeta?: { ip?: string; userAgent?: string }
 ): Promise<Result> {
-  const isTest = typeof process !== 'undefined' && !!(process as any).env &&
-    (Boolean((process as any).env.VITEST_WORKER_ID) || Boolean((process as any).env.VITEST));
   const mask = (s: string): string => {
     if (!s) return "";
     if (s.length <= 8) return "***";
@@ -89,7 +90,7 @@ export async function CheckToken(
   const CurrentSessionData = ThrowErrorIfFailed(await XMOJDatabase.Select("phpsessid", ["user_id", "create_time"], {
     token: HashedToken
   }));
-  if (!isTest && (CurrentSessionData as any[]).toString() !== "") {
+  if ((CurrentSessionData as any[]).toString() !== "") {
     if ((CurrentSessionData as any[])[0]["user_id"] === Username &&
       (CurrentSessionData as any[])[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
       // Session valid - update last access time for session rotation
@@ -106,23 +107,21 @@ export async function CheckToken(
   }
 
   // Distributed KV cache preferred if available
-    if (!isTest && KV) {
+  if (KV) {
     const kvCached = await KV.get(`sess:${SessionID}`);
     if (kvCached) {
       if (kvCached === Username) {
-          if (!isTest) {
-            const tableSizeResult = ThrowErrorIfFailed(
-              await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
-            ) as { TableSize: number };
-            if (tableSizeResult.TableSize === 0) {
-              try {
-                await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
-              } catch (error) {
-                // Ignore race condition errors; session will be valid from concurrent insert
-              }
-            }
+        const tableSizeResult = ThrowErrorIfFailed(
+          await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+        ) as { TableSize: number };
+        if (tableSizeResult.TableSize === 0) {
+          try {
+            await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
+          } catch (error) {
+            // Ignore race condition errors; session will be valid from concurrent insert
           }
-          return new Result(true, "令牌匹配");
+        }
+        return new Result(true, "令牌匹配");
       } else {
         return new Result(false, "令牌不匹配");
       }
@@ -139,23 +138,21 @@ export async function CheckToken(
   const nowTs = new Date().getTime();
   const isExpired = cached && (nowTs - cached.t) >= CACHE_TTL_MS;
 
-  if (!isTest && isExpired) {
+  if (isExpired) {
     // expired; remove to prevent growth
     globalCache.delete(SessionID);
-  } else if (!isTest && cached) {
+  } else if (cached) {
     // Cache is valid, use it
     if (cached.u === Username) {
       Output.Log("Using cached session for user");
-      if (!isTest) {
-        const tableSizeResult = ThrowErrorIfFailed(
-          await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
-        ) as { TableSize: number };
-        if (tableSizeResult.TableSize === 0) {
-          try {
-            await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
-          } catch (error) {
-            // Ignore race condition errors; session will be valid from concurrent insert
-          }
+      const tableSizeResult = ThrowErrorIfFailed(
+        await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+      ) as { TableSize: number };
+      if (tableSizeResult.TableSize === 0) {
+        try {
+          await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
+        } catch (error) {
+          // Ignore race condition errors; session will be valid from concurrent insert
         }
       }
       return new Result(true, "令牌匹配");
@@ -184,21 +181,19 @@ export async function CheckToken(
     .then((Response) => {
       return Response.text();
     }).then(async (Response) => {
-      // Prefer cheerio parsing when not in test env; otherwise use regex
+      // Prefer cheerio parsing in all environments; fallback to regex if unavailable
       try {
-        if (!isTest) {
-          const mod: any = await import('cheerio');
-          const $ = mod.load(Response);
-          let found = "";
-          $('a[href*="user_id="]').each((_: any, el: any) => {
-            if (found) return;
-            const href = $(el).attr('href') || '';
-            const m = href.match(/user_id=([a-zA-Z0-9_\-]+)/);
-            if (m && m[1]) found = m[1];
-          });
-          if (found) return found;
-        }
-      } catch {}
+        const mod: any = await import('cheerio');
+        const $ = mod.load(Response);
+        let found = "";
+        $('a[href*="user_id="]').each((_: any, el: any) => {
+          if (found) return;
+          const href = $(el).attr('href') || '';
+          const m = href.match(/user_id=([a-zA-Z0-9_\-]+)/);
+          if (m && m[1]) found = m[1];
+        });
+        if (found) return found;
+      } catch {
       const m = Response.match(/user_id=([a-zA-Z0-9_\-]+)/);
       return m ? m[1] : "";
     }).catch((Error) => {
@@ -222,24 +217,22 @@ export async function CheckToken(
   }
 
   // Handle race condition: check if token exists before inserting to avoid duplicate key errors
-  if (!isTest) {
-    const tableSizeResult = ThrowErrorIfFailed(
-      await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
-    ) as { TableSize: number };
-    if (tableSizeResult.TableSize === 0) {
-      try {
-        await XMOJDatabase.Insert("phpsessid", {
-          token: HashedToken,
-          user_id: Username,
-          create_time: new Date().getTime()
-        });
-      } catch (error) {
-        // If duplicate key error (race condition), token already exists from concurrent request - this is fine
-        // For other errors, log but continue since token verification already passed
-        const errMsg = error instanceof Error ? error.message : String(error);
-        if (!errMsg.includes('UNIQUE') && !errMsg.includes('duplicate')) {
-          Output.Error("Token insert error (continuing): " + errMsg);
-        }
+  const tableSizeResult = ThrowErrorIfFailed(
+    await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+  ) as { TableSize: number };
+  if (tableSizeResult.TableSize === 0) {
+    try {
+      await XMOJDatabase.Insert("phpsessid", {
+        token: HashedToken,
+        user_id: Username,
+        create_time: new Date().getTime()
+      });
+    } catch (error) {
+      // If duplicate key error (race condition), token already exists from concurrent request - this is fine
+      // For other errors, log but continue since token verification already passed
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (!errMsg.includes('UNIQUE') && !errMsg.includes('duplicate')) {
+        Output.Error("Token insert error (continuing): " + errMsg);
       }
     }
   }

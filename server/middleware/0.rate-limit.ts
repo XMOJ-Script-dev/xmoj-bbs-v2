@@ -36,7 +36,14 @@ export default defineEventHandler(async (event: any) => {
     return;
   }
   // Fallback: global in-memory token bucket without timers; cleaned on access
+  // WARNING: In-memory storage only works within a single Cloudflare isolate.
+  // Each cold-start or isolate change resets the bucket. Deploy with RATE_LIMIT_KV for distributed protection.
   const globalBuckets: Map<string, { tokens: number; last: number }> = (globalThis as any).__rlBuckets || ((globalThis as any).__rlBuckets = new Map());
+  if (!(globalThis as any).__rlBucketsWarningLogged && !kv) {
+    // Log warning once to avoid spam
+    (globalThis as any).__rlBucketsWarningLogged = true;
+    console.warn('RATE LIMITING WARNING: No KV binding available. Rate limiting using in-memory storage will not work across isolates.');
+  }
   const TTL_MS = 5 * 60 * 1000;
   // Opportunistically clean up only the accessed key if stale
   let st = globalBuckets.get(key);

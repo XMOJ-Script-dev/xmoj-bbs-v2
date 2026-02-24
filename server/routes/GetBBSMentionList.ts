@@ -17,16 +17,19 @@ export default eventHandler(async (event) => {
   // Get all post IDs to fetch in one query
   const postIds = Mentions.map((m: any) => m['post_id']);
   
-  // Fetch all posts at once using IN clause
+  // Fetch all posts at once using IN clause via ExecuteComplexQuery for proper validation
   const postsQuery = `SELECT post_id, user_id, title FROM bbs_post WHERE post_id IN (${postIds.map(() => '?').join(',')})`;
-  const Posts: any = await (auth.database as any).RawDatabase.prepare(postsQuery).bind(...postIds).all();
-  const postsMap: Map<any, any> = new Map(Posts.results.map((p: any) => [p.post_id, p]));
+  const PostsResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(postsQuery, postIds));
+  const postsMap: Map<any, any> = new Map(PostsResult.Data.results.map((p: any) => [p.post_id, p]));
   
   for (const Mention of Mentions) {
     const Post: any = postsMap.get(Mention['post_id']);
     if (!Post) continue;
     
-    const totalRepliesBefore = (await (auth.database as any).RawDatabase.prepare("SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = $1 AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = $2)").bind(Mention['post_id'], Mention['reply_id']).run())['results'][0]['position'];
+    // Use ExecuteComplexQuery instead of RawDatabase to validate SQL
+    const positionQuery = `SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = ? AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = ?)`;
+    const PositionResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(positionQuery, [Mention['post_id'], Mention['reply_id']]));
+    const totalRepliesBefore = PositionResult.Data.results[0]['position'];
     const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
     ResponseData.MentionList.push({
       MentionID: Mention['bbs_mention_id'],
