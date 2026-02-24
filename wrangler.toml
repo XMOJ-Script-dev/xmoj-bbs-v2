@@ -41,4 +41,4 @@ class_name = "NotificationManager"
 # Migration for NotificationManager Durable Object
 [[migrations]]
 tag = "v1"
-new_classes = ["NotificationManager"]
+new_sqlite_classes = ["NotificationManager"]

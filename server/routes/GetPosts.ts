@@ -29,6 +29,11 @@ export default eventHandler(async (event) => {
       return new Result(false, "身份验证失败");
     }
     
+    // Set default Limit if not provided
+    if (Data.Limit === undefined) {
+      Data.Limit = 20;
+    }
+    
     ThrowErrorIfFailed(CheckParams(Data, {
       "ProblemID": "number",
       "Page": "number",
