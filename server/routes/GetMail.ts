@@ -30,7 +30,23 @@ export default eventHandler(async (event) => {
   const totalTo = ThrowErrorIfFailed(await auth.database.GetTableSize("short_message", { message_from: auth.username, message_to: Data.OtherUser }))['TableSize'];
   ResponseData.Total = totalFrom + totalTo;
   
-  let Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: Data.OtherUser, message_to: auth.username }, { Order: "send_time", OrderIncreasing: false, Limit: limit, Offset: offset }));
+  // Use UNION query to properly paginate across both received and sent messages
+  // This ensures correct ordering by send_time across both message directions
+  const unionQuery = `
+    SELECT message_id, message_from, message_to, content, send_time, is_read
+    FROM short_message
+    WHERE (message_from = ? AND message_to = ?)
+       OR (message_from = ? AND message_to = ?)
+    ORDER BY send_time DESC
+    LIMIT ? OFFSET ?
+  `;
+  const Mails = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(unionQuery, [
+    Data.OtherUser, auth.username,
+    auth.username, Data.OtherUser,
+    limit, offset
+  ])).results;
+  
+  // Process all messages (both received and sent) from unified result set
   for (const Mail of (Mails as any[])) {
     try {
       if (Mail['content'].startsWith("Begin xssmseetee v3 encrypted message")) {
@@ -64,50 +80,7 @@ export default eventHandler(async (event) => {
       IsRead: Mail['is_read']
     });
   }
-  // Fetch sent messages with remaining limit
-  const remainingLimit = Math.max(0, limit - ResponseData.Mail.length);
-  if (remainingLimit > 0) {
-    // Calculate offset for sent messages correctly:
-    // If we got fewer messages from the first query, adjust the offset accordingly
-    // Formula: sentOffset = max(0, offsetRequested + messagesGotFromFirst - totalFirst)
-    // This ensures no gaps or duplicates in pagination across merged sources
-    const sentOffset = Math.max(0, offset + ResponseData.Mail.length - totalFrom);
-    Mails = ThrowErrorIfFailed(await auth.database.Select("short_message", [], { message_from: auth.username, message_to: Data.OtherUser }, { Order: "send_time", OrderIncreasing: false, Limit: remainingLimit, Offset: sentOffset }));
-    for (const Mail of (Mails as any[])) {
-      try {
-        if (Mail['content'].startsWith("Begin xssmseetee v3 encrypted message")) {
-          // Use new Web Crypto API decryption
-          Mail['content'] = await decryptMessage(Mail['content'], cloudflare.env.xssmseetee_v1_key, Mail['message_from'], Mail['message_to']);
-          // Sanitize decrypted content to prevent stored XSS
-          Mail['content'] = sanitizeRichText(Mail['content']);
-        } else if (Mail['content'].startsWith("Begin xssmseetee v2 encrypted message")) {
-          // Legacy v2 decryption (deprecated - should migrate to v3)
-          Mail['content'] = CryptoJS.AES.decrypt(Mail['content'].substring(37), cloudflare.env.xssmseetee_v1_key + Mail['message_from'] + Mail['message_to']).toString(CryptoJS.enc.Utf8);
-          // Sanitize decrypted content to prevent stored XSS
-          Mail['content'] = sanitizeRichText(Mail['content']);
-        } else if (Mail['content'].startsWith("Begin xssmseetee v1 encrypted message")) {
-          // Legacy v1 decryption (DEPRECATED - insecure shared key)
-          Mail['content'] = CryptoJS.AES.decrypt(Mail['content'].substring(37), cloudflare.env.xssmseetee_v1_key).toString(CryptoJS.enc.Utf8);
-          // Sanitize decrypted content to prevent stored XSS
-          Mail['content'] = sanitizeRichText(Mail['content']);
-        } else {
-          const preContent = Mail['content'];
-          Mail['content'] = "无法解密消息, 原始数据: " + sanitizeRichText(preContent);
-        }
-      } catch (error) {
-        Mail['content'] = "解密失败: " + (error as any).message;
-      }
-      ResponseData.Mail.push({
-        MessageID: Mail['message_id'],
-        FromUser: Mail['message_from'],
-        ToUser: Mail['message_to'],
-        Content: Mail['content'],
-        SendTime: Mail['send_time'],
-        IsRead: Mail['is_read']
-      });
-    }
-  }
-  ResponseData.Mail.sort((a: any, b: any) => a['SendTime'] < b['SendTime'] ? 1 : -1);
+  // Messages are already sorted by UNION query; no need to re-sort
   await auth.database.Update("short_message", { is_read: 1 }, { message_from: Data.OtherUser, message_to: auth.username });
   return new Result(true, "获得短消息成功", ResponseData);
 });

@@ -26,10 +26,10 @@ export default eventHandler(async (event) => {
   const { Data } = body;
   const { auth, requestMeta, cloudflare } = event.context;
   
-  ThrowErrorIfFailed(CheckParams(Data, { "ReplyID": "number", "CaptchaSecretKey": "string" }));
+  ThrowErrorIfFailed(CheckParams(Data, { "ReplyID": "number", "CaptchaToken": "string" }));
   
   ThrowErrorIfFailed(await VerifyCaptcha(
-    Data.CaptchaSecretKey,
+    Data.CaptchaToken,
     cloudflare.env.CaptchaSecretKey,
     requestMeta.remoteIP,
     cloudflare.env.CAPTCHA_KV

@@ -32,12 +32,12 @@ export default eventHandler(async (event: any) => {
     "ProblemID": "number",
     "Title": { type: "string", maxLength: 256 },
     "Content": { type: "string", maxLength: 50000 },
-    "CaptchaSecretKey": "string",
+    "CaptchaToken": "string",
     "BoardID": "number"
   }));
   
   ThrowErrorIfFailed(await VerifyCaptcha(
-    Data.CaptchaSecretKey,
+    Data.CaptchaToken,
     cloudflare.env.CaptchaSecretKey,
     requestMeta.remoteIP,
     cloudflare.env.CAPTCHA_KV

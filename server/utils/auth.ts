@@ -94,11 +94,15 @@ export async function CheckToken(
   if ((CurrentSessionData as any[]).toString() !== "") {
     if ((CurrentSessionData as any[])[0]["user_id"] === Username &&
       (CurrentSessionData as any[])[0]["create_time"] + SESSION_EXPIRY_MS > new Date().getTime()) {
-      // Session valid - update last access time for session rotation
-      try {
-        await XMOJDatabase.Update("phpsessid", { create_time: new Date().getTime() }, { token: HashedToken });
-      } catch (e) {
-        // Ignore update errors, session is still valid
+      // Session valid - update last access time only if > 5 minutes since last update to reduce write pressure
+      const SESSION_UPDATE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+      const lastUpdate = (CurrentSessionData as any[])[0]["create_time"];
+      if (new Date().getTime() - lastUpdate > SESSION_UPDATE_THRESHOLD) {
+        try {
+          await XMOJDatabase.Update("phpsessid", { create_time: new Date().getTime() }, { token: HashedToken });
+        } catch (e) {
+          // Ignore update errors, session is still valid
+        }
       }
       return new Result(true, "令牌匹配");
     } else {
