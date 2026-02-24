@@ -30,8 +30,8 @@ const ALLOWED_TABLES = [
 ];
 
 const ALLOWED_COLUMNS: Record<string, string[]> = {
-  'bbs_post': ['post_id', 'user_id', 'title', 'content', 'board_id', 'post_time', 'last_reply_time'],
-  'bbs_reply': ['reply_id', 'post_id', 'user_id', 'content', 'reply_time'],
+  'bbs_post': ['post_id', 'user_id', 'title', 'content', 'board_id', 'post_time', 'last_reply_time', 'edit_time', 'edit_person'],
+  'bbs_reply': ['reply_id', 'post_id', 'user_id', 'content', 'reply_time', 'edit_time', 'edit_person'],
   'bbs_board': ['board_id', 'board_name'],
   'bbs_mention': ['bbs_mention_id', 'post_id', 'reply_id', 'to_user_id', 'from_user_id', 'bbs_mention_time'],
   'bbs_lock': ['post_id', 'lock_time', 'lock_person'],
@@ -41,7 +41,7 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'image': ['image_id', 'user_id', 'path', 'upload_time'],
   'std': ['std_id', 'user_id', 'problem_id', 'content', 'upload_time'],
   'std_answer': ['problem_id', 'std_code'],
-  'short_message': ['message_id','message_from','message_to','content','send_time','is_read'],
+  'short_message': ['message_id', 'message_from', 'message_to', 'content', 'send_time', 'is_read'],
   'bbs_admin': ['user_id'],
   'bbs_silenced': ['user_id', 'silenced_until'],
   'bbs_deny_message': ['user_id'],

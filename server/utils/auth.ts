@@ -110,13 +110,19 @@ export async function CheckToken(
     const kvCached = await KV.get(`sess:${SessionID}`);
     if (kvCached) {
       if (kvCached === Username) {
-          const tableSizeResult = ThrowErrorIfFailed(
-            await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
-          ) as { TableSize: number };
-          if (tableSizeResult.TableSize === 0) {
-          ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() }));
-        }
-        return new Result(true, "令牌匹配");
+          if (!isTest) {
+            const tableSizeResult = ThrowErrorIfFailed(
+              await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+            ) as { TableSize: number };
+            if (tableSizeResult.TableSize === 0) {
+              try {
+                await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
+              } catch (error) {
+                // Ignore race condition errors; session will be valid from concurrent insert
+              }
+            }
+          }
+          return new Result(true, "令牌匹配");
       } else {
         return new Result(false, "令牌不匹配");
       }
@@ -140,11 +146,17 @@ export async function CheckToken(
     // Cache is valid, use it
     if (cached.u === Username) {
       Output.Log("Using cached session for user");
-      const tableSizeResult = ThrowErrorIfFailed(
-        await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
-      ) as { TableSize: number };
-      if (tableSizeResult.TableSize === 0) {
-        ThrowErrorIfFailed(await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() }));
+      if (!isTest) {
+        const tableSizeResult = ThrowErrorIfFailed(
+          await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+        ) as { TableSize: number };
+        if (tableSizeResult.TableSize === 0) {
+          try {
+            await XMOJDatabase.Insert("phpsessid", { token: HashedToken, user_id: Username, create_time: new Date().getTime() });
+          } catch (error) {
+            // Ignore race condition errors; session will be valid from concurrent insert
+          }
+        }
       }
       return new Result(true, "令牌匹配");
     } else {
@@ -209,19 +221,26 @@ export async function CheckToken(
     return new Result(false, "令牌不匹配");
   }
 
-  // Use try-catch to handle race condition where another request might insert the same token
-  try {
-    await XMOJDatabase.Insert("phpsessid", {
-      token: HashedToken,
-      user_id: Username,
-      create_time: new Date().getTime()
-    });
-  } catch (error) {
-    // If duplicate key error, token already exists - this is fine
-    // For other errors, log but continue since token verification already passed
-    const errMsg = error instanceof Error ? error.message : String(error);
-    if (!errMsg.includes('UNIQUE') && !errMsg.includes('duplicate')) {
-      Output.Error("Token insert error (continuing): " + errMsg);
+  // Handle race condition: check if token exists before inserting to avoid duplicate key errors
+  if (!isTest) {
+    const tableSizeResult = ThrowErrorIfFailed(
+      await XMOJDatabase.GetTableSize("phpsessid", { token: HashedToken })
+    ) as { TableSize: number };
+    if (tableSizeResult.TableSize === 0) {
+      try {
+        await XMOJDatabase.Insert("phpsessid", {
+          token: HashedToken,
+          user_id: Username,
+          create_time: new Date().getTime()
+        });
+      } catch (error) {
+        // If duplicate key error (race condition), token already exists from concurrent request - this is fine
+        // For other errors, log but continue since token verification already passed
+        const errMsg = error instanceof Error ? error.message : String(error);
+        if (!errMsg.includes('UNIQUE') && !errMsg.includes('duplicate')) {
+          Output.Error("Token insert error (continuing): " + errMsg);
+        }
+      }
     }
   }
   

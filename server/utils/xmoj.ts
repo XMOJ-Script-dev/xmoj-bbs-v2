@@ -20,11 +20,6 @@ import { Database } from "./database";
 import { Output } from "./output";
 import { load, type CheerioAPI } from "cheerio";
 
-import { Result, ThrowErrorIfFailed } from "./resultUtils";
-import { Database } from "./database";
-import { Output } from "./output";
-import { load, type CheerioAPI } from "cheerio";
-
 // Cache for user existence checks (5 minute TTL)
 const USER_CACHE_TTL_MS = 5 * 60 * 1000;
 const userExistCache: Map<string, { exist: boolean; timestamp: number }> = new Map();
