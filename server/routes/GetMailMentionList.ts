@@ -26,16 +26,16 @@ export default eventHandler(async (event) => {
   const Mentions: any[] = ThrowErrorIfFailed(
     await auth.database.Select(
       "short_message_mention",
-      ["mail_mention_id", "from_user_id", "mail_mention_time"],
+      ["mention_id", "from_user_id", "mention_time"],
       { to_user_id: auth.username }
     )
   );
 
   for (const Mention of Mentions) {
     ResponseData.MentionList.push({
-      MentionID: Mention["mail_mention_id"],
+      MentionID: Mention["mention_id"],
       FromUserID: Mention["from_user_id"],
-      MentionTime: Mention["mail_mention_time"]
+      MentionTime: Mention["mention_time"]
     });
   }
 

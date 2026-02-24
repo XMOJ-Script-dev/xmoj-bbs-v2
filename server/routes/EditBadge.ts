@@ -9,6 +9,15 @@ export default eventHandler(async (event: any) => {
   const { Data } = body;
   const { auth, cloudflare } = event.context;
   ThrowErrorIfFailed(CheckParams(Data, { "UserID": "string", "BackgroundColor": "string", "Color": "string", "Content": "string" }));
+  
+  // Validate color formats to prevent CSS injection
+  const colorPattern = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[a-z]+)$/i;
+  if (!colorPattern.test(Data.BackgroundColor)) {
+    return new Result(false, "背景颜色格式不正确");
+  }
+  if (!colorPattern.test(Data.Color)) {
+    return new Result(false, "文字颜色格式不正确");
+  }
   if (!(await IsAdminAsync(auth.username, auth.database)) && Data.UserID !== auth.username) {
     return new Result(false, "没有权限编辑此标签");
   }

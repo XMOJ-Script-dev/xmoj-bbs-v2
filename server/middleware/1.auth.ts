@@ -71,6 +71,16 @@ export default defineEventHandler(async (event: any) => {
       throw new Result(false, "认证信息不完整");
     }
     
+    // Validate SessionID format to prevent CRLF injection
+    if (!/^[a-zA-Z0-9]{1,128}$/.test(Authentication.SessionID)) {
+      throw new Result(false, "SessionID格式不正确");
+    }
+    
+    // Validate Username format
+    if (!/^[a-zA-Z0-9_\-]{1,64}$/.test(Authentication.Username)) {
+      throw new Result(false, "Username格式不正确");
+    }
+    
     const { cloudflare } = event.context;
     const XMOJDatabase = new Database(cloudflare.env.DB);
     

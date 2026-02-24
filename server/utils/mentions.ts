@@ -33,6 +33,7 @@ export async function AddBBSMention(
   try {
     await XMOJDatabase.Insert("bbs_mention", {
       to_user_id: ToUserID,
+      from_user_id: FromUserID,
       post_id: PostID,
       bbs_mention_time: new Date().getTime(),
       reply_id: ReplyID
@@ -70,7 +71,7 @@ export async function AddMailMention(
     await XMOJDatabase.Insert("short_message_mention", {
       from_user_id: FromUserID,
       to_user_id: ToUserID,
-      mail_mention_time: new Date().getTime()
+      mention_time: new Date().getTime()
     });
   } catch (error) {
     // If insert fails due to unique constraint, update existing record
@@ -78,7 +79,7 @@ export async function AddMailMention(
     if (errMsg.includes('UNIQUE') || errMsg.includes('duplicate')) {
       try {
         await XMOJDatabase.Update("short_message_mention", {
-          mail_mention_time: new Date().getTime()
+          mention_time: new Date().getTime()
         }, {
           from_user_id: FromUserID,
           to_user_id: ToUserID
