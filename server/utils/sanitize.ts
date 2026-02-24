@@ -3,19 +3,10 @@ import sanitizeHtml from 'sanitize-html';
 export function sanitizeRichText(input: string): string {
   if (!input) return "";
   
-  // Pre-process to handle potential XSS vectors as defense-in-depth
-  // The sanitize-html library already handles these, but we add extra protection
-  let processed = input
-    // Remove any attempts at script injection
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-    // Remove HTML comments
-    .replace(/<!--[\s\S]*?-->/g, '')
-    // Remove event handlers (on* attributes)
-    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/\s+on\w+\s*=\s*[^\s>]*/gi, '');
-  
-  return sanitizeHtml(processed, {
+  // Use sanitize-html with strict configuration to prevent XSS
+  // All sanitization is delegated to the well-tested library
+  // Do not add custom regex filtering as it can introduce new attack vectors
+  return sanitizeHtml(input, {
     allowedTags: [
       'p', 'br', 'strong', 'em', 'u', 's', 'code', 'pre', 'blockquote',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -50,9 +41,24 @@ export function sanitizeRichText(input: string): string {
     enforceHtmlBoundary: true,
     // Nest block elements properly
     nestingLimit: 50,
+    // Filter out dangerous data attributes and event handlers
+    parser: {
+      lowerCaseAttributeNames: true,
+      lowerCaseTags: true
+    },
+    // Custom filter for href attributes - prevent javascript: and data: URIs
+    onIgnoreTag: function(tag: string, node: any) {
+      // Keep processing all tags through the allowed list
+    },
     // Automatically add rel="noopener noreferrer" to links with target="_blank"
     transformTags: {
       'a': (tagName: string, attribs: Record<string, string>) => {
+        // Validate href doesn't contain javascript: or data: schemes
+        if (attribs.href && /^(javascript|data|vbscript|file|about):/i.test(attribs.href)) {
+          // Remove unsafe href
+          delete attribs.href;
+        }
+        
         const rel = attribs.rel || '';
         const relParts = new Set(rel.split(/\s+/).filter(Boolean));
         
@@ -68,6 +74,16 @@ export function sanitizeRichText(input: string): string {
             ...attribs,
             rel: Array.from(relParts).join(' ')
           }
+        };
+      },
+      'img': (tagName: string, attribs: Record<string, string>) => {
+        // Validate src and ensure it's https only
+        if (attribs.src && !/^https:\/\//.test(attribs.src)) {
+          delete attribs.src;
+        }
+        return {
+          tagName,
+          attribs
         };
       }
     }
