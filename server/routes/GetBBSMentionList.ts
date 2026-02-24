@@ -20,7 +20,7 @@ export default eventHandler(async (event) => {
   // Fetch all posts at once using IN clause via ExecuteComplexQuery for proper validation
   const postsQuery = `SELECT post_id, user_id, title FROM bbs_post WHERE post_id IN (${postIds.map(() => '?').join(',')})`;
   const PostsResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(postsQuery, postIds));
-  const postsMap: Map<any, any> = new Map(PostsResult.Data.results.map((p: any) => [p.post_id, p]));
+  const postsMap: Map<any, any> = new Map(PostsResult.results.map((p: any) => [p.post_id, p]));
   
   for (const Mention of Mentions) {
     const Post: any = postsMap.get(Mention['post_id']);
@@ -29,7 +29,7 @@ export default eventHandler(async (event) => {
     // Use ExecuteComplexQuery instead of RawDatabase to validate SQL
     const positionQuery = `SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = ? AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = ?)`;
     const PositionResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(positionQuery, [Mention['post_id'], Mention['reply_id']]));
-    const totalRepliesBefore = PositionResult.Data.results[0]['position'];
+    const totalRepliesBefore = PositionResult.results[0]['position'];
     const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
     ResponseData.MentionList.push({
       MentionID: Mention['bbs_mention_id'],

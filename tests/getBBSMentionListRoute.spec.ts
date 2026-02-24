@@ -14,6 +14,16 @@ describe('GetBBSMentionList route', () => {
           { bbs_mention_id: 1, post_id: 10, bbs_mention_time: 123, reply_id: 77 },
         ],
       }),
+      ExecuteComplexQuery: async (sql: string, _args: any[]) => {
+        // Mock returns posts for the IN query, empty for position query
+        const isPostQuery = sql.includes('FROM bbs_post WHERE post_id IN')
+        return {
+          Success: true,
+          Data: isPostQuery
+            ? { results: [{ post_id: 10, user_id: 'u', title: 'T' }], meta: {} }
+            : { results: [{ position: 1 }], meta: {} }
+        }
+      },
     }
 
     const RawDatabase = {

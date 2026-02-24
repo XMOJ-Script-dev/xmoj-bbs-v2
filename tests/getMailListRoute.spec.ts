@@ -32,7 +32,7 @@ describe('GetMailList route', () => {
     const list = (res.Data as any).MailList
     expect(list.length).toBe(1)
     expect(list[0].OtherUser).toBe('alice')
-    expect(typeof list[0].LastsMessage).toBe('string')
+    expect(typeof list[0].LastMessage).toBe('string')
     expect(list[0].UnreadCount).toBe(3)
   })
 })

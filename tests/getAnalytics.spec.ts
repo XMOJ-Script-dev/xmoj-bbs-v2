@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock h3 to control readBody
 vi.mock('h3', async () => ({
-  readBody: async (_e: any) => ({ Authentication: {}, Data: { sql: 'SELECT 1' } }),
+  readBody: async (_e: any) => ({ 
+    Authentication: {}, 
+    Data: { sql: 'SELECT COUNT(*) FROM bbs_post' } // Use whitelisted SQL pattern
+  }),
   H3Event: class {},
 }))
 

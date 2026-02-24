@@ -27,6 +27,8 @@ class MockDatabase {
 describe('CheckToken', () => {
   const db = new (MockDatabase as any)();
   beforeEach(() => {
+    // Clear global token cache between tests
+    delete (globalThis as any).__tokenCache;
     (globalThis as any).fetch = vi.fn().mockResolvedValue({
       text: () => Promise.resolve("<a href='profile.php?user_id=testuser'>")
     });
@@ -36,8 +38,11 @@ describe('CheckToken', () => {
     expect(res.Success).toBe(true);
   });
   it('rejects mismatched username', async () => {
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({ text: () => Promise.resolve("<a href='profile.php?user_id=other'>") });
-    const res = await CheckToken('session123', 'testuser', db);
+    // Use a different session ID to avoid cache
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({ 
+      text: () => Promise.resolve("<a href='profile.php?user_id=other'>") 
+    });
+    const res = await CheckToken('session456', 'testuser', db);
     expect(res.Success).toBe(false);
   });
 });
