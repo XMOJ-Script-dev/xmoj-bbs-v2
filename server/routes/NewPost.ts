@@ -28,6 +28,15 @@ export default eventHandler(async (event: any) => {
   const { Data } = body;
   const { auth, requestMeta, cloudflare } = event.context;
   
+  // Ensure authentication context exists
+  if (!auth || !auth.database) {
+    return new Result(false, "认证失败");
+  }
+  
+  if (!cloudflare) {
+    return new Result(false, "服务器配置错误");
+  }
+  
   ThrowErrorIfFailed(CheckParams(Data, {
     "ProblemID": "number",
     "Title": { type: "string", maxLength: 256 },
