@@ -16,6 +16,7 @@
  */
 
 import { Database } from "~/utils/database";
+import { Output } from "~/utils/output";
 
 // Time constants matching auth.ts
 const MILLISECONDS_PER_SECOND = 1000;
@@ -31,7 +32,7 @@ export default defineNitroPlugin((nitroApp: any) => {
     const { env, context } = event;
     let XMOJDatabase = new Database(env.DB);
 
-    context.waitUntil((async () => {
+    const cleanup = async () => {
       await XMOJDatabase.Delete("short_message", {
         "send_time": {
           "Operator": "<=",
@@ -48,6 +49,10 @@ export default defineNitroPlugin((nitroApp: any) => {
           "Value": new Date().getTime() - SESSION_EXPIRY_MS
         }
       });
-    })());
+    };
+
+    context.waitUntil(cleanup().catch((err: any) => {
+      Output.Error("Scheduled cleanup failed: " + (err?.message || String(err)));
+    }));
   });
 });
