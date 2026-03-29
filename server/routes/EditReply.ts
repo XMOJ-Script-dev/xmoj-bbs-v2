@@ -1,0 +1,90 @@
+/*
+ *     Copyright (C) 2023-2025  XMOJ-bbs contributors
+ *     This file is part of XMOJ-bbs.
+ *     XMOJ-bbs is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     XMOJ-bbs is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+import { CheckParams } from "~/utils/checkParams";
+import { IsAdminAsync, IsSilencedAsync } from "~/utils/auth";
+import { AddBBSMention } from "~/utils/mentions";
+import { sanitizeRichText } from "~/utils/sanitize";
+import { IfUserExist } from "~/utils/xmoj";
+import { VerifyCaptcha } from "~/utils/captcha";
+
+export default eventHandler(async (event) => {
+  const body = await readBody(event);
+  const { Data } = body;
+  const { auth, requestMeta, cloudflare } = event.context;
+  
+  // Ensure authentication context exists
+  if (!auth || !auth.database) {
+    return new Result(false, "认证失败");
+  }
+  
+  if (!cloudflare) {
+    return new Result(false, "服务器配置错误");
+  }
+  
+  ThrowErrorIfFailed(CheckParams(Data, { "ReplyID": "number", "Content": { type: "string", maxLength: 50000 }, "CaptchaToken": "string" }));
+  
+  ThrowErrorIfFailed(await VerifyCaptcha(
+    Data.CaptchaToken,
+    cloudflare.env.CaptchaSecretKey,
+    requestMeta.remoteIP,
+    cloudflare.env.CAPTCHA_KV
+  ));
+  
+  const Reply = ThrowErrorIfFailed(await auth.database.Select("bbs_reply", ["post_id", "user_id"], { reply_id: Data.ReplyID }));
+  if (!Array.isArray(Reply) || Reply.length === 0) {
+    return new Result(false, "编辑失败，未找到此回复");
+  }
+  if (!(await IsAdminAsync(auth.username, auth.database)) && Reply[0]['user_id'] !== auth.username) {
+    return new Result(false, "没有权限编辑此回复");
+  }
+  if (ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_post", { post_id: Reply[0]['post_id'] }))['TableSize'] === 0) {
+    return new Result(false, "编辑失败，该回复所属的讨论不存在");
+  }
+  if (!(await IsAdminAsync(auth.username, auth.database)) && ThrowErrorIfFailed(await auth.database.GetTableSize("bbs_lock", { post_id: Reply[0]['post_id'] }))['TableSize'] === 1) {
+    return new Result(false, "讨论已被锁定");
+  }
+  Data.Content = sanitizeRichText(Data.Content.trim());
+  if (Data.Content === "") {
+    return new Result(false, "内容不能为空");
+  }
+  if (await IsSilencedAsync(auth.username, auth.database)) {
+    return new Result(false, "您已被禁言，无法编辑回复");
+  }
+  const MentionPeople: string[] = [];
+  for (const Match of String(Data.Content).matchAll(/@([a-zA-Z0-9]+)/g)) {
+    if (ThrowErrorIfFailed(await IfUserExist(Match[1], auth.database))['Exist']) {
+      MentionPeople.push(Match[1]);
+    }
+  }
+  const uniqueMentions = Array.from(new Set(MentionPeople));
+  const isAdmin = await IsAdminAsync(auth.username, auth.database).catch(() => false);
+  if (uniqueMentions.length > 3 && !isAdmin) {
+    return new Result(false, "一次最多@3个人");
+  }
+  ThrowErrorIfFailed(await auth.database.Update("bbs_reply", {
+    content: Data.Content,
+    edit_time: new Date().getTime(),
+    edit_person: auth.username
+  }, { reply_id: Data.ReplyID }));
+  
+  for (const person of uniqueMentions) {
+    await AddBBSMention(person, auth.username, Reply[0]['post_id'], Data.ReplyID, auth.database, (auth as any).notificationNamespace, (auth as any).notificationToken);
+  }
+  return new Result(true, "编辑回复成功");
+});

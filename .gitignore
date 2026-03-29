@@ -11,3 +11,7 @@ dist
 */.output
 */node_modules
 */.nitro
+old
+old/
+xmoj-script
+xmoj-script/

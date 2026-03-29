@@ -1,0 +1,23 @@
+import { describe, it, expect, vi } from 'vitest';
+import { Result } from '../server/utils/resultUtils';
+
+vi.mock('../server/utils/auth', async (orig) => {
+  const mod = await orig();
+  return { ...mod, CheckToken: vi.fn(async () => new Result(true, '令牌匹配')) };
+});
+
+describe('Auth middleware', () => {
+  it('stores auth context on success', async () => {
+    const cloudflare: any = { env: { DB: { prepare: () => ({ bind: () => ({ all: async () => ({ results: [], meta: {} }) }) }) } } };
+    const event: any = { method: 'POST', path: '/SendMail', context: { cloudflare } };
+
+    const body = { Authentication: { SessionID: 'abc', Username: 'u' }, Data: {} };
+    (globalThis as any).readBody = vi.fn(async () => body);
+
+    // Import middleware default
+    const mw = (await import('../server/middleware/1.auth.ts')).default as any;
+    await mw(event);
+    expect(event.context.auth.username).toBe('u');
+    expect(event.context.auth.database).toBeTruthy();
+  });
+});

@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: XMOJ BBS API
+  version: 0.1.0
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+servers:
+  - url: https://xmoj-bbs.tech
+security:
+  - sessionAuth: []
+components:
+  securitySchemes:
+    sessionAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: PHPSESSID
+paths:
+  /GetBoards:
+    post:
+      operationId: getBoards
+      summary: List boards
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Data:
+                  type: object
+                  properties:
+                    Limit:
+                      type: integer
+                      default: 50
+                    Offset:
+                      type: integer
+                      default: 0
+      responses:
+        '200':
+          description: Boards list
+        '400':
+          description: Invalid request
+  /GetPosts:
+    post:
+      operationId: getPosts
+      summary: List posts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Authentication:
+                  type: object
+                Data:
+                  type: object
+                  properties:
+                    ProblemID: { type: integer }
+                    BoardID: { type: integer }
+                    Page: { type: integer }
+                    Limit: { type: integer, default: 15 }
+      responses:
+        '200': { description: Posts list }
+        '400': { description: Invalid request }
+  /GetBBSMentionList:
+    post:
+      operationId: getBBSMentionList
+      summary: List mentions for current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Authentication:
+                  type: object
+                Data:
+                  type: object
+                  properties:
+                    Limit: { type: integer, default: 50 }
+                    Offset: { type: integer, default: 0 }
+      responses:
+        '200': { description: Mentions list }
+        '400': { description: Invalid request }
+  /DeletePost:
+    post:
+      operationId: deletePost
+      summary: Delete a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Authentication:
+                  type: object
+                Data:
+                  type: object
+                  properties:
+                    PostID: { type: integer }
+                  required:
+                    - PostID
+      responses:
+        '200': { description: Delete status }
+        '400': { description: Invalid request }
+  /DeleteReply:
+    post:
+      operationId: deleteReply
+      summary: Delete a reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Authentication:
+                  type: object
+                Data:
+                  type: object
+                  properties:
+                    ReplyID: { type: integer }
+                  required:
+                    - ReplyID
+      responses:
+        '200': { description: Delete status }
+        '400': { description: Invalid request }

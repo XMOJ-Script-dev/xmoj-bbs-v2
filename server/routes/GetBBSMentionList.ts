@@ -1,0 +1,59 @@
+/*
+ *     Copyright (C) 2023-2025  XMOJ-bbs contributors
+ *     This file is part of XMOJ-bbs.
+ *     XMOJ-bbs is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     XMOJ-bbs is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { Result, ThrowErrorIfFailed } from "~/utils/resultUtils";
+
+export default eventHandler(async (event) => {
+  const { auth } = event.context;
+  const body = await readBody(event);
+  const { Data } = body || {};
+  const limit = Data?.Limit && Data.Limit > 0 ? Data.Limit : 50;
+  const offset = Data?.Offset || 0;
+  const ResponseData: { MentionList: any[] } = { MentionList: [] };
+  const Mentions: any[] = ThrowErrorIfFailed(await auth.database.Select("bbs_mention", ["bbs_mention_id", "post_id", "bbs_mention_time", "reply_id"], { to_user_id: auth.username }, { Limit: limit, Offset: offset }));
+  
+  if (Mentions.length === 0) {
+    return new Result(true, "获得讨论提及列表成功", ResponseData);
+  }
+  
+  // Get all post IDs to fetch in one query
+  const postIds = Mentions.map((m: any) => m['post_id']);
+  
+  // Fetch all posts at once using IN clause via ExecuteComplexQuery for proper validation
+  const postsQuery = `SELECT post_id, user_id, title FROM bbs_post WHERE post_id IN (${postIds.map(() => '?').join(',')})`;
+  const PostsResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(postsQuery, postIds));
+  const postsMap: Map<any, any> = new Map(PostsResult.results.map((p: any) => [p.post_id, p]));
+  
+  for (const Mention of Mentions) {
+    const Post: any = postsMap.get(Mention['post_id']);
+    if (!Post) continue;
+    
+    // Use ExecuteComplexQuery instead of RawDatabase to validate SQL
+    const positionQuery = `SELECT COUNT(*) + 1 AS position FROM bbs_reply WHERE post_id = ? AND reply_time < (SELECT reply_time FROM bbs_reply WHERE reply_id = ?)`;
+    const PositionResult: any = ThrowErrorIfFailed(await auth.database.ExecuteComplexQuery(positionQuery, [Mention['post_id'], Mention['reply_id']]));
+    const totalRepliesBefore = PositionResult.results[0]['position'];
+    const pageNumber = Math.floor(Number(totalRepliesBefore) / 15) + 1;
+    ResponseData.MentionList.push({
+      MentionID: Mention['bbs_mention_id'],
+      PostID: Mention['post_id'],
+      PostTitle: Post['title'],
+      MentionTime: Mention['bbs_mention_time'],
+      PageNumber: pageNumber
+    });
+  }
+  return new Result(true, "获得讨论提及列表成功", ResponseData);
+});

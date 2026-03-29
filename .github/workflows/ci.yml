@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Install dependencies (strict)
+        run: npm ci
+      - name: Fallback install on lock mismatch
+        if: failure()
+        run: |
+          echo "npm ci failed; attempting fallback npm install to refresh lockfile"
+          npm install
+      - name: Upload refreshed lockfile artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-lockfile-${{ matrix.node }}
+          path: package-lock.json
+
+      - name: Audit dependencies
+        run: npm audit --production --audit-level=moderate
+        continue-on-error: true
+
+      - name: TypeScript compile check
+        run: |
+          npx tsc --noEmit
+
+      - name: Prepare Nitro (generate types)
+        run: npm run prepare
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test -- --run
+
+      - name: Lint
+        run: npx eslint . --ext .ts
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies (strict)
+        run: npm ci
+      - name: Fallback install on lock mismatch
+        if: failure()
+        run: |
+          echo "npm ci failed; attempting fallback npm install to refresh lockfile"
+          npm install
+      - name: Upload refreshed lockfile artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-lockfile-lint
+          path: package-lock.json
+      - name: OpenAPI validation (Redocly)
+        run: |
+          npx @redocly/cli@latest lint openapi.yaml --max-problems=0

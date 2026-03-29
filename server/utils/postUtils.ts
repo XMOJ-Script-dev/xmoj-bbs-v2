@@ -1,0 +1,44 @@
+/*
+ *     Copyright (C) 2023-2025  XMOJ-bbs contributors
+ *     This file is part of XMOJ-bbs.
+ *     XMOJ-bbs is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU Affero General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     XMOJ-bbs is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU Affero General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Affero General Public License
+ *     along with XMOJ-bbs.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { Result, ThrowErrorIfFailed } from "./resultUtils";
+import { Database } from "./database";
+
+/**
+ * Shared utility to delete a post and all its replies
+ * Note: D1 doesn't support traditional transactions. We use sequential deletes
+ * which is acceptable because:
+ * 1. Orphaned replies/locks are cleaned up by scheduled tasks
+ * 2. The database constraints prevent data corruption
+ * 3. Failed operations are caught and reported
+ */
+export async function DeletePostWithReplies(
+  postId: number,
+  database: Database
+): Promise<Result> {
+  try {
+    // Use bulk delete instead of N+1 queries for better performance
+    ThrowErrorIfFailed(await database.Delete("bbs_reply", { post_id: postId }));
+    ThrowErrorIfFailed(await database.Delete("bbs_post", { post_id: postId }));
+    ThrowErrorIfFailed(await database.Delete("bbs_lock", { post_id: postId }));
+    // Clean up mentions to prevent orphaned data
+    ThrowErrorIfFailed(await database.Delete("bbs_mention", { post_id: postId }));
+    return new Result(true, "删除讨论成功");
+  } catch (_error) {
+    return new Result(false, "删除讨论失败，请稍后重试");
+  }
+}
