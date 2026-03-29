@@ -26,7 +26,8 @@ let readonly = false; // set to true to allow maintenance
 const ALLOWED_TABLES = [
   'bbs_post', 'bbs_reply', 'bbs_board', 'bbs_mention', 'bbs_lock',
   'badge', 'phpsessid', 'mail', 'image', 'std', 'std_answer', 'short_message',
-  'bbs_admin', 'bbs_silenced', 'bbs_deny_message', 'bbs_deny_badge_edit', 'short_message_mention'
+  'bbs_admin', 'bbs_silenced', 'bbs_deny_message', 'bbs_deny_badge_edit', 'short_message_mention',
+  'user_settings'
 ];
 
 const ALLOWED_COLUMNS: Record<string, string[]> = {
@@ -46,7 +47,8 @@ const ALLOWED_COLUMNS: Record<string, string[]> = {
   'bbs_silenced': ['user_id', 'silenced_until'],
   'bbs_deny_message': ['user_id'],
   'bbs_deny_badge_edit': ['user_id'],
-  'short_message_mention': ['mail_mention_id', 'message_id', 'to_user_id', 'from_user_id', 'mail_mention_time']
+  'short_message_mention': ['mail_mention_id', 'message_id', 'to_user_id', 'from_user_id', 'mail_mention_time'],
+  'user_settings': ['user_id', 'settings']
 };
 
 function validateTableName(table: string): void {
